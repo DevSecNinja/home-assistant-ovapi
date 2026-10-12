@@ -45,7 +45,7 @@
 - [x] T013 Update README.md, docs/README.nl.md, docs/policy.md and docs/quality.md with setup, retention and quality evidence.
 - [x] T014 Run both locked runtime suites, full-flow/per-module coverage, types/lint/package; record exact results in specs/002-stop-name-picker/verification.md.
 - [x] T015 Exercise rendered actual HA phone/desktop configuration, progress and errors with synthetic data; record evidence in specs/002-stop-name-picker/verification.md.
-- [ ] T016 Converge spec/plan/tasks, commit/push new branch, create template-based PR and verify hosted checks; record results in specs/002-stop-name-picker/verification.md.
+- [x] T016 Converge spec/plan/tasks, commit/push new branch, create template-based PR and verify hosted checks; record results in specs/002-stop-name-picker/verification.md.
 
 ## Dependencies & Execution Order
 
@@ -79,7 +79,7 @@ alone: all three approved stories and required evidence are delivery gates.
 ## Phase 7: Convergence
 
 - [x] T021 Align the plan's search-widget/progress wording with the verified native query form, dropdown and bounded notification retries in specs/002-stop-name-picker/plan.md per plan: native UI decisions (partial).
-- [ ] T022 Finish final dual-runtime/performance, staged pre-commit and hosted PR evidence in specs/002-stop-name-picker/verification.md per FR-010, T014 and T016 (partial).
+- [x] T022 Finish final dual-runtime/performance, staged pre-commit and hosted PR evidence in specs/002-stop-name-picker/verification.md per FR-010, T014 and T016 (partial).
 
 ## User-directed GitHub Copilot review
 

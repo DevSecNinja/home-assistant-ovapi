@@ -32,15 +32,17 @@ locked development remains HA 2026.10.1 with fixture 0.13.372. No migration need
 
 ## Executed local checks
 
-| Command                                                                   | Result                                                                  |
-| ------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `mise run test`                                                           | Passed: 246 tests on locked HA 2026.10.1                                |
-| `mise run test-minimum`                                                   | Passed: the same 246 tests on exact HA 2026.10.0                        |
-| `mise exec -- uv run --locked pytest tests/test_discovery.py -q --no-cov` | Passed: 54 tests, including maximum-size cached search under one second |
-| `mise run test-ui -- -q --tb=short --show-capture=no`                     | Passed: real HA frontend, 1 browser scenario, 7.60 seconds              |
-| `mise run typecheck`                                                      | Passed: strict mypy, all nine integration modules                       |
-| `mise run package`                                                        | Passed: 15 integration files, translations and unchanged version guards |
-| `mise run lint`                                                           | Passed: ruff, dprint, yamlfmt, actionlint and offline zizmor            |
+| Command                                                                    | Result                                                                                            |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `mise run test`                                                            | Passed: 246 tests on locked HA 2026.10.1                                                          |
+| `mise run test-minimum`                                                    | Passed: the same 246 tests on exact HA 2026.10.0                                                  |
+| `mise exec -- uv run --locked pytest tests/test_discovery.py -q --no-cov`  | Passed: 54 tests, including maximum-size cached search under one second                           |
+| `mise run test-ui -- -q --tb=short --show-capture=no`                      | Passed: real HA frontend, 1 browser scenario, 7.60 seconds                                        |
+| `mise run typecheck`                                                       | Passed: strict mypy, all nine integration modules                                                 |
+| `mise run package`                                                         | Passed: 15 integration files, translations and unchanged version guards                           |
+| `mise run lint`                                                            | Passed: ruff, dprint, yamlfmt, actionlint and offline zizmor                                      |
+| `mise exec -- lefthook run pre-commit`                                     | Passed with the implementation staged: formatting, Python lint and strict types actually executed |
+| `mise exec -- gitleaks git --staged --no-banner --redact --log-level warn` | Passed                                                                                            |
 
 Every integration module has 100% statement coverage. Coordinator branches are
 97.67%; all other modules, including config flow, have 100% branch coverage.
@@ -109,11 +111,23 @@ explicit limitations. Suspended/disconnected browsers cannot be forcibly erased;
 active dialogs update, backend data expires and replay fails closed. Full companion
 card E2E is not rerun because the wire contract is unchanged.
 
-Hosted CI and final pre-commit/commit evidence are recorded after PR creation.
+## Hosted checks
+
+Implementation commit `335f5d5` is reviewed in
+[PR #3](https://github.com/DevSecNinja/home-assistant-ovapi/pull/3).
+[Hosted run 38238395735](https://github.com/DevSecNinja/home-assistant-ovapi/actions/runs/38238395735)
+passed both Linux runtime lanes, official HACS, hassfest and all enabled shared
+organization lint jobs. Unlike the old pre-merge implementation PR, HACS's
+repository-license check now passes against merged main.
+
+`gh pr checks 3 --repo DevSecNinja/home-assistant-ovapi --watch --interval 15`
+completed successfully. User-requested GitHub Copilot review is coordinated by
+the parent; processing its feedback remains a separate tracked delivery gate.
 
 ## Convergence assessment
 
 All 10 functional requirements, 5 success criteria, 7 acceptance scenarios,
 9 plan decisions and 5 governing principles were assessed. No production-code
 gap remained. The native search/progress description was aligned with the actual
-rendered controls; final delivery evidence is the remaining tracked task.
+rendered controls and local/hosted evidence is recorded. GitHub Copilot review
+feedback is the remaining tracked delivery gate.
