@@ -231,3 +231,11 @@ failure/abort while in flight, shared old points, and real spare capacity.
 and `mise run test-minimum` both pass **265 tests**. All module statements and
 config-flow branches remain 100%; coordinator branches are 98.21%.
 The coordinator owns the new thread reply/resolution after final verification.
+
+Final confirmation: production fix `62473ca` passed every enabled hosted check
+in [run 38248272052](https://github.com/DevSecNinja/home-assistant-ovapi/actions/runs/38248272052).
+Native bilingual browser checks passed again on locked/minimum HA in 19.74/19.94
+seconds; both installed environments also pass `uv pip check`. On 2026-10-12 the
+coordinator posted [reply 4247941195](https://github.com/DevSecNinja/home-assistant-ovapi/pull/4#discussion_r4247941195)
+and resolved the remaining review thread. All original and follow-up review
+findings are addressed. PR #4 remains open and unmerged for the user.

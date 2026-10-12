@@ -94,4 +94,4 @@ carried on a new branch from merged main, not pushed to or reopening that PR.
 - [x] T025 Exercise native English and Dutch add-and-reconfigure journeys on both supported HA versions in tests/ui/test_native_picker.py, preserving entity identity and options.
 - [x] T026 Correct empty-departure wording in strings.json and translations/en.json/translations/nl.json and the HACS prerequisite spelling in docs/README.nl.md.
 - [x] T027 Preserve updated bilingual screenshots and reservation/validation evidence, then open the new review-fix PR and verify hosted checks; coordinator owns review requests and replies.
-- [ ] T028 Address PR #4's follow-up finding that same-target adds could borrow a replacement's capacity, covering both creation orders and abort/failure/expiry, then verify checks and coordinator thread resolution.
+- [x] T028 Address PR #4's follow-up finding that same-target adds could borrow a replacement's capacity, covering both creation orders and abort/failure/expiry, then verify checks and coordinator thread resolution.
