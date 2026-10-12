@@ -153,7 +153,7 @@
       "discovery_busy": "Er staan te veel haltezoekopdrachten open. Sluit een ander instelvenster en probeer opnieuw."
     },
     "create_entry": {
-      "default": "Je vertrekgegevens zijn klaar voor een dashboard. De entiteit toont de status van de gegevensbron, niet de vertrektijden. [Installeer de OVAPI-kaarten in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=DevSecNinja&repository=lovelace-ovapi&category=plugin), voeg een OVAPI-kaart toe en kies de entiteit van deze favoriet. [Handleiding voor de kaarten](https://github.com/DevSecNinja/lovelace-ovapi)."
+      "default": "Je vertrekgegevens zijn klaar voor een dashboard. De entiteit toont de status van de gegevensbron, niet de vertrektijden. [Installeer de OVAPI-kaarten in HACS]({card_install_url}), voeg een OVAPI-kaart toe en kies de entiteit van deze favoriet. [Handleiding voor de kaarten]({card_docs_url})."
     }
   },
   "selector": {

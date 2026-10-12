@@ -80,6 +80,7 @@ def main(profile: str = "dev", destination: Path = Path("dist/ovapi.zip")) -> No
     assert manifest["requirements"] == []
     check_compatibility(profile)
     strings = json.loads((ROOT / "strings.json").read_text())
+    assert "https://" not in json.dumps(strings), "Use translation URL placeholders"
     assert json.loads((ROOT / "translations/en.json").read_text()) == strings
     assert keys(json.loads((ROOT / "translations/nl.json").read_text())) == keys(
         strings

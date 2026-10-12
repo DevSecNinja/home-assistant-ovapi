@@ -98,6 +98,14 @@ original unmet station scope rather than representing it as implemented.
 
 ## Review handoff
 
+The first hosted run (`38250051535`) caught literal URLs in translated setup
+success text. Those now use HA description placeholders backed by constants;
+the package guard and public-flow assertion prevent recurrence. Both real native
+EN/NL browser scenarios and both 283-test HA suites passed again with the
+placeholder-rendered HACS link. The same hosted run's locked backend failed
+before tests because the Python release download returned HTTP 504 repeatedly;
+no version pin, dependency guard or CI policy was changed to mask that outage.
+
 Convergence checked 32 requirement/acceptance items, eight design decisions and
 five constitution principles. One partial FR-014 gap was appended as T018:
 time-only pause labels were ambiguous for multi-day Retry-After. A regression

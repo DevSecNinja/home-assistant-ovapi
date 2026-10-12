@@ -8,6 +8,7 @@ from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import config_validation as cv
 
 from custom_components.ovapi.config_flow import schema
+from custom_components.ovapi.const import CARD_DOCS_URL, CARD_INSTALL_URL
 
 from .test_coordinator import tick
 from .test_discovery_coordinator import settle
@@ -51,6 +52,10 @@ async def test_user_flow(hass, api, payload):
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"] == {"name": "Amsterdam Amstel", "stop_id": "01234567"}
     assert result["options"]["walking_minutes"] == 5
+    assert result["description_placeholders"] == {
+        "card_install_url": CARD_INSTALL_URL,
+        "card_docs_url": CARD_DOCS_URL,
+    }
     assert api.call_count == 1
 
 

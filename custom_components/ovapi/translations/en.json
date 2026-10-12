@@ -153,7 +153,7 @@
       "discovery_busy": "Too many stop lookups are open. Close another setup window and try again."
     },
     "create_entry": {
-      "default": "Your departure feed is ready to connect to a dashboard. The entity shows feed status, not departure times. [Install the OVAPI companion cards in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=DevSecNinja&repository=lovelace-ovapi&category=plugin), then add an OVAPI card and select this favourite's entity. [Card setup guide](https://github.com/DevSecNinja/lovelace-ovapi)."
+      "default": "Your departure feed is ready to connect to a dashboard. The entity shows feed status, not departure times. [Install the OVAPI companion cards in HACS]({card_install_url}), then add an OVAPI card and select this favourite's entity. [Card setup guide]({card_docs_url})."
     }
   },
   "selector": {

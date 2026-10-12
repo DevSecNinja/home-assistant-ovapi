@@ -18,6 +18,8 @@ from homeassistant.util import dt as dt_util
 
 from .client import ApiError, valid_stop
 from .const import (
+    CARD_DOCS_URL,
+    CARD_INSTALL_URL,
     CONF_DESTINATION,
     CONF_LINES,
     CONF_STOP,
@@ -506,6 +508,10 @@ class OvapiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         data=data,
                         options=options,
                         description="default",
+                        description_placeholders={
+                            "card_install_url": CARD_INSTALL_URL,
+                            "card_docs_url": CARD_DOCS_URL,
+                        },
                     )
             defaults = user_input
         form_schema = schema(defaults)

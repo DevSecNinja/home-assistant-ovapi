@@ -21,3 +21,8 @@ CONF_DESTINATION = "destination"
 CONF_WALK = "walking_minutes"
 CONF_TRANSPORTS = "transport_types"
 SUPPORTED_TRANSPORTS = ("bus", "tram", "metro")
+CARD_INSTALL_URL = (
+    "https://my.home-assistant.io/redirect/hacs_repository/"
+    "?owner=DevSecNinja&repository=lovelace-ovapi&category=plugin"
+)
+CARD_DOCS_URL = "https://github.com/DevSecNinja/lovelace-ovapi"
