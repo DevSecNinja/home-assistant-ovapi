@@ -16,7 +16,7 @@ from custom_components.ovapi.client import (
     retry_after_seconds,
     valid_stop,
 )
-from custom_components.ovapi.const import MAX_RESPONSE_BYTES
+from custom_components.ovapi.const import MAX_RESPONSE_BYTES, USER_AGENT, VERSION
 
 
 def test_parse_board(payload):
@@ -36,13 +36,27 @@ def test_invalid_or_ambiguous_time(value):
         parse_time(value)
 
 
-async def test_batched_client(api, payload):
+@pytest.fixture
+def release_version():
+    return json.loads(Path("custom_components/ovapi/manifest.json").read_text())[
+        "version"
+    ]
+
+
+async def test_batched_client(api, payload, release_version):
     api.get("http://v0.ovapi.nl/tpc/01234567,76543210/departures", json=payload)
     async with api.create_session(asyncio.get_running_loop()) as session:
         result = await OvapiClient(session).fetch({"76543210", "01234567"})
     assert result["01234567"][0].line == "X1"
     assert result["76543210"] is None
     assert api.call_count == 1
+    expected_agent = (
+        f"home-assistant-ovapi/{release_version} "
+        "(+https://github.com/DevSecNinja/home-assistant-ovapi)"
+    )
+    assert VERSION == release_version
+    assert USER_AGENT == expected_agent
+    assert api.mock_calls[0][3]["User-Agent"] == expected_agent
 
 
 async def test_http_error(api):

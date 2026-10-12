@@ -20,3 +20,4 @@ exclude:
   - apm_modules/**
   - .specify/**
   - .venv/**
+  - .venv-minimum/**

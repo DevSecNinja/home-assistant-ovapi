@@ -19,7 +19,8 @@
     ".agents/**",
     ".specify/**",
     ".github/skills/**",
-    ".venv/**"
+    ".venv/**",
+    ".venv-minimum/**"
   ],
   "plugins": [
     "https://plugins.dprint.dev/markdown-0.21.1.wasm"

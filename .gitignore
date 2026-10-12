@@ -1,4 +1,5 @@
 .venv/
+.venv-minimum/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -6,6 +7,7 @@ __pycache__/
 .ruff_cache/
 .coverage*
 coverage.json
+coverage-minimum.json
 htmlcov/
 dist/
 *.egg-info/

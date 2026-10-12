@@ -16,22 +16,31 @@ zizmor = "1.30.1"
 lefthook = "2.2.1"
 
 [tasks.install]
-run = "uv sync --frozen"
+run = "uv sync --locked"
 
 [tasks.test]
-run = ["uv run pytest", "uv run python scripts/check_coverage.py"]
+run = ["uv run --locked python scripts/check_compatibility.py dev", "uv run --locked pytest", "uv run --locked python scripts/check_coverage.py"]
+
+[tasks.test-minimum]
+env = { UV_PROJECT_ENVIRONMENT = ".venv-minimum", COVERAGE_FILE = ".coverage-minimum" }
+run = [
+  "uv sync --locked --only-group minimum",
+  "uv run --locked --only-group minimum python scripts/check_compatibility.py minimum",
+  "uv run --locked --only-group minimum pytest --cov-report=json:coverage-minimum.json",
+  "uv run --locked --only-group minimum python scripts/check_coverage.py coverage-minimum.json",
+]
 
 [tasks.lint]
-run = ["uv run ruff check .", "uv run ruff format --check .", "dprint check", "yamlfmt -lint .github/workflows/*.yml custom_components/ovapi/quality_scale.yaml lefthook.yml", "actionlint", "zizmor --offline .github/workflows"]
+run = ["uv run --locked ruff check .", "uv run --locked ruff format --check .", "dprint check", "yamlfmt -lint .github/workflows/*.yml custom_components/ovapi/quality_scale.yaml lefthook.yml", "actionlint", "zizmor --offline .github/workflows"]
 
 [tasks.typecheck]
-run = "uv run mypy custom_components"
+run = "uv run --locked mypy custom_components"
 
 [tasks.package]
-run = "uv run python scripts/check_package.py"
+run = "uv run --locked python -m scripts.check_package"
 
 [tasks.specify]
 run = "uvx --from specify-cli==1.1.3 specify"
 
 [tasks.check]
-depends = ["test", "lint", "typecheck", "package"]
+depends = ["test", "test-minimum", "lint", "typecheck", "package"]

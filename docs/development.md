@@ -9,17 +9,64 @@ mise trust
 mise install
 mise run install
 mise run test
+mise run test-minimum
 mise run typecheck
 mise run lint
 mise run package
 mise exec -- lefthook run pre-commit
 ```
 
-Python 3.14.8 and uv 0.12.19 are pinned in `.mise.toml`; `uv.lock` pins the entire
-test environment, including HA 2026.10.1 and pytest-homeassistant-custom-component
-0.13.372. Installation is frozen. `mise run test` fails unless every integration
+Python 3.14.8 and uv 0.12.19 are pinned in `.mise.toml`; `uv.lock` pins both
+test environments: development HA 2026.10.1 / pytest-homeassistant-custom-component
+0.13.372, and declared minimum HA 2026.10.0 / fixture 0.13.371. Commands use
+`--locked`: dependency drift fails instead of silently updating the lock.
+Both test tasks fail unless every integration
 module exceeds 95% statement **and** branch coverage; config flow requires 100%
 in both. There is no aggregate-only escape hatch.
+
+### Home Assistant compatibility and version changes
+
+`hacs.json`'s `homeassistant` field is the **supported HA minimum authority**.
+`scripts/check_compatibility.py` reads it, accepts only stable `YYYY.M.P`
+versions (real month, no prerelease/range/prefix), and compares numeric versions
+against the **installed** HA distribution before tests and packaging. A declared
+minimum newer than the tested runtime fails.
+
+CI runs two real integration-suite jobs: `backend (locked)` and `backend (minimum)`.
+The latter requires installed HA to **equal** the declared minimum, not merely
+exceed it. The `minimum` dependency group's fixture release must genuinely require
+that HA version. The guard verifies the installed fixture matches the group's
+exact pin and that its dependency metadata requires the installed HA exactly.
+No `--no-deps`, dependency overrides or incompatible fixture reuse are permitted.
+
+`mise run test-minimum` uses `.venv-minimum`, `.coverage-minimum` and
+`coverage-minimum.json`, separate from development. The mutually exclusive groups
+share one committed `uv.lock`. Both full suites and per-module gates run in
+`mise run check`; neither job is path-filtered or skipped for draft PRs.
+
+To deliberately change the supported floor, edit `hacs.json`, select a compatible
+fixture release for the `minimum` group, run `mise exec -- uv lock`, and run
+`mise run check`. Updating just the HACS field or just the minimum fixture fails
+the exact-runtime check. Routine development-fixture/Renovate updates must **not**
+automatically raise the minimum; keep the minimum profile intact and test both.
+There is no arbitrary maximum HA version or runtime rejection of manual installs.
+
+### Integration release identity
+
+`custom_components/ovapi/manifest.json`'s `version` is the **integration release
+authority**, independent of the HA minimum. For a release bump, update that field,
+`const.py`'s literal `VERSION`, and `pyproject.toml`'s `project.version` together,
+then refresh `uv.lock` and run `mise run check`. The package guard parses the
+constant statically (no HA imports/runtime file I/O) and fails with the mismatched
+file named. Versions must use canonical three-part PEP 440 syntax, such as `0.2.0`
+or `0.2.0rc1`, without epoch or local suffix.
+
+The real async-client request test derives its expected release from the manifest
+and verifies `const.VERSION`, `USER_AGENT`, and the outgoing `User-Agent` header.
+Coherent version bumps pass; tests are not frozen to `0.1.0`.
+Do **not** synchronize `ConfigFlow.VERSION` (persisted config schema),
+`contract_version` (card wire protocol), or `v0` in `API_URL` (upstream protocol)
+with the integration release or supported HA minimum.
 
 HA now uses **probatio** schemas; do not blindly copy older voluptuous flow
 examples. Tests use real config-entry managers, registries, state machines,

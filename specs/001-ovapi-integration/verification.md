@@ -102,3 +102,46 @@ Buildable backend requirements and appended convergence edge tasks pass locally
 and on hosted Linux; combined actual HA/card E2E passes. The remaining external
 HACS default-branch license metadata blocker is explicitly recorded above.
 No package/release publication, merge or live-user installation occurs.
+
+## User-directed follow-up: HA minimum and release identity guards
+
+`hacs.json` remains unchanged at **2026.10.0** and is now the single supported-floor
+authority, not a literal duplicated by the package validator. The guard validates
+stable HA version syntax/ordering using installed distribution metadata, requires
+the minimum lane to run that exact version, and verifies the selected pinned
+pytest-HA fixture actually requires the installed HA version. Stale fixture
+selection, a newer-than-tested floor or overridden fixture dependencies fail
+explicitly. All verification commands use `uv --locked` to reject stale locks.
+
+Two mutually exclusive dependency groups resolve normally in one committed lock:
+
+| Profile        | Installed HA | Matching fixture | Local evidence                                                  |
+| -------------- | ------------ | ---------------- | --------------------------------------------------------------- |
+| `minimum`      | 2026.10.0    | 0.13.371         | `mise run test-minimum`: 156 passed; per-module coverage passes |
+| `dev` / locked | 2026.10.1    | 0.13.372         | `mise run test`: 156 passed; per-module coverage passes         |
+
+Both are separate CI matrix jobs. Local environments and coverage output are
+separate, so `mise run check` can run them concurrently without contaminating
+evidence. No no-deps install, forced HA override, automatic minimum bump, upper
+HA bound or manual-install runtime restriction is added.
+
+Integration release identity is a different domain: `manifest.json` owns the
+release; a static package check requires matching literal `const.VERSION` and
+`pyproject.toml` version. Canonical three-part PEP 440 releases, including release
+candidates, are accepted. The actual intercepted HTTP request test derives the
+expected `User-Agent` from the manifest and checks both the constant and outgoing
+header. Coherent bumps pass, while missing/mismatched/nonliteral versions fail.
+Config schema, card protocol and upstream v0 versions are intentionally untouched.
+
+Regression tests cover malformed HA versions, numeric ordering, unsupported
+minimums, exact-floor mismatch, stale/wrong fixture groups, dependency overrides,
+invalid release versions, release mismatch and coherent release bumps.
+The full local checks pass on both runtimes; hosted follow-up results are recorded
+in the PR after push. The separate initial HACS default-branch license metadata
+dependency remains enabled and unchanged.
+
+`mise run check` passes all six tasks (both test profiles, lint, strict types and
+package). Both runtimes retain 100% statements in every integration module,
+97.73% coordinator branches and 100% branches elsewhere/full config flow.
+`mise exec -- uv pip check --python .venv/bin/python` and the same command with
+`.venv-minimum/bin/python` report all installed packages compatible.

@@ -25,8 +25,15 @@ jobs:
       lint-trivy: false
       upload-sarif: false
   backend:
+    name: backend (${{ matrix.runtime }})
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime:
+          - locked
+          - minimum
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -35,11 +42,19 @@ jobs:
         with:
           version: "2026.9.15"
       - run: mise run install
+        if: matrix.runtime == 'locked'
       - run: mise run test
+        if: matrix.runtime == 'locked'
+      - run: mise run test-minimum
+        if: matrix.runtime == 'minimum'
       - run: mise run typecheck
-      - run: mise exec -- uv run ruff check .
-      - run: mise exec -- uv run ruff format --check .
+        if: matrix.runtime == 'locked'
+      - run: mise exec -- uv run --locked ruff check .
+        if: matrix.runtime == 'locked'
+      - run: mise exec -- uv run --locked ruff format --check .
+        if: matrix.runtime == 'locked'
       - run: mise run package
+        if: matrix.runtime == 'locked'
   hassfest:
     runs-on: ubuntu-24.04
     timeout-minutes: 15

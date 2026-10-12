@@ -11,6 +11,12 @@ dev = [
   "mypy>=1.18",
   "ruff>=0.14",
 ]
+# This fixture's own HA pin must equal hacs.json's declared minimum.
+# Update deliberately with the supported floor, not with routine dev updates.
+minimum = ["pytest-homeassistant-custom-component==0.13.371"]
+
+[tool.uv]
+conflicts = [[{ group = "dev" }, { group = "minimum" }]]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -25,7 +31,7 @@ source = ["custom_components.ovapi"]
 [tool.ruff]
 target-version = "py314"
 line-length = 88
-extend-exclude = [".specify", ".github/skills"]
+extend-exclude = [".specify", ".github/skills", ".venv-minimum"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "ASYNC"]

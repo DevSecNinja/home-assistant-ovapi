@@ -3,6 +3,8 @@
 1. Install mise, trust this checkout, then `mise install`.
 2. `mise run install` creates a local locked Python environment.
 3. `mise run test` runs only synthetic offline tests and per-module coverage gates.
+   `mise run test-minimum` runs the same suite against the exact HACS-declared HA
+   minimum in its separate, locked environment with a compatible fixture release.
 4. `mise run lint`, `mise run typecheck`, `mise run package` verify quality/packaging.
 5. Use `docs/card-contract-v1.md` and the synthetic fixture for companion-card tests.
 

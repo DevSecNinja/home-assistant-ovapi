@@ -181,6 +181,9 @@ See [development](docs/development.md), [quality evidence](docs/quality.md), and
 [Spec Kit artifacts](specs/001-ovapi-integration/). Tooling is repository-local mise,
 locked Python dependencies, real HA fixtures, offline synthetic tests, strict typing
 and coverage gates for **every module**, with 100% config-flow coverage.
+CI exercises both the declared `hacs.json` minimum and the locked development HA
+runtime using matching fixture dependencies. Release-version checks keep the
+integration manifest, Python metadata and outgoing user-agent identity aligned.
 
 Code is MIT licensed. This license does **not** cover upstream transport data or
 override OVAPI/GOVI terms. The wiki's linked GOVI license was unavailable during

@@ -1,11 +1,14 @@
 """Enforce coverage per integration module, never only the aggregate."""
 
 import json
+import sys
 from pathlib import Path
 
 
 def main() -> None:
-    report = json.loads(Path("coverage.json").read_text())
+    report = json.loads(
+        Path(sys.argv[1] if len(sys.argv) > 1 else "coverage.json").read_text()
+    )
     failures = []
     modules = sorted(Path("custom_components/ovapi").glob("*.py"))
     for module in modules:

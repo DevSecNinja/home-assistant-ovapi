@@ -2,7 +2,7 @@
 pre-commit:
   commands:
     python:
-      run: mise exec -- uv run ruff check .
+      run: mise exec -- uv run --locked ruff check .
     types:
       run: mise run typecheck
     formatting:
