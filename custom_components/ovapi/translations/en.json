@@ -1,0 +1,55 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add an OVAPI favourite",
+        "description": "Use a timing-point code from your stop sign or operator. OVAPI uses unencrypted public HTTP. A shared conservative request budget applies; adding a new stop may require waiting two minutes. Departure data is transient and not stored in Home Assistant history. NS trains use the separate Nederlandse Spoorwegen integration.",
+        "data": {"name": "Favourite name", "stop_id": "Timing-point code", "lines": "Lines", "destination": "Destination contains", "walking_minutes": "Walking time (minutes)"},
+        "data_description": {"name": "Your label, such as Amsterdam Amstel.", "stop_id": "1-10 digits; preserve leading zeros. No stop-directory scraping is performed.", "lines": "Optional comma-separated public line numbers, matched exactly.", "destination": "Optional case-insensitive destination text.", "walking_minutes": "Used by the companion cards to calculate when to leave."}
+      },
+      "reconfigure": {
+        "title": "Change the favourite",
+        "description": "Change the stop, label or filters. Connection validation shares the global request budget.",
+        "data": {"name": "Favourite name", "stop_id": "Timing-point code", "lines": "Lines", "destination": "Destination contains", "walking_minutes": "Walking time (minutes)"},
+        "data_description": {"name": "Your label for this favourite.", "stop_id": "1-10 digits, including leading zeros.", "lines": "Optional comma-separated public line numbers.", "destination": "Optional case-insensitive destination text.", "walking_minutes": "Walking time for local leave countdowns."}
+      }
+    },
+    "error": {
+      "invalid_name": "Enter a nonblank favourite name.",
+      "invalid_walk": "Enter a whole number of walking minutes from 0 to 120.",
+      "cannot_connect": "Cannot reach OVAPI. The integration will back off; try again later.",
+      "unknown_stop": "OVAPI did not return this stop. Check its timing-point code.",
+      "invalid_stop": "Enter a timing-point code containing 1-10 digits.",
+      "invalid_data": "OVAPI returned invalid or ambiguous data. Try again later.",
+      "response_too_large": "OVAPI returned too much data. Reduce the number of stops.",
+      "rate_limited": "The shared request budget is cooling down or OVAPI requested a pause. Wait at least two minutes before retrying.",
+      "too_many_stops": "At most ten distinct timing points are supported per Home Assistant instance."
+    },
+    "abort": {"already_configured": "This stop and filter combination is already configured.", "reconfigure_successful": "The favourite was updated."}
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Favourite preferences",
+        "description": "Filters and walking time do not increase upstream request frequency.",
+        "data": {"lines": "Lines", "destination": "Destination contains", "walking_minutes": "Walking time (minutes)"},
+        "data_description": {"lines": "Optional comma-separated public line numbers.", "destination": "Optional case-insensitive destination text.", "walking_minutes": "Used by the companion cards to calculate when to leave."}
+      }
+    },
+    "error": {"already_configured": "Another favourite already has this stop and filter combination.", "invalid_walk": "Enter a whole number of walking minutes from 0 to 120."}
+  },
+  "entity": {
+    "sensor": {
+      "board": {"name": "Departure board", "state": {"ready": "Ready", "stale": "Stale"}}
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {"message": "OVAPI is unavailable; retrying automatically."},
+    "unknown_stop": {"message": "OVAPI did not return this timing point. Check the configured code."},
+    "invalid_stop": {"message": "The timing-point code is invalid."},
+    "invalid_data": {"message": "OVAPI returned invalid data; retrying automatically."},
+    "response_too_large": {"message": "OVAPI response exceeded the safety limit."},
+    "rate_limited": {"message": "Waiting for the shared OVAPI request budget."},
+    "too_many_stops": {"message": "At most ten distinct timing points are supported."}
+  }
+}

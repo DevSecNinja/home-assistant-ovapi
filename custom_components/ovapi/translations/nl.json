@@ -1,0 +1,55 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "OVAPI-favoriet toevoegen",
+        "description": "Gebruik de haltecode van het haltebord of de vervoerder. OVAPI gebruikt onversleuteld openbaar HTTP. Alle haltes delen een voorzichtig aanvraagbudget; bij een nieuwe halte moet je soms twee minuten wachten. Vertrekgegevens zijn tijdelijk en komen niet in de Home Assistant-geschiedenis. Gebruik voor NS-treinen de aparte integratie Nederlandse Spoorwegen.",
+        "data": {"name": "Naam favoriet", "stop_id": "Haltecode", "lines": "Lijnen", "destination": "Bestemming bevat", "walking_minutes": "Looptijd (minuten)"},
+        "data_description": {"name": "Je eigen naam, bijvoorbeeld Amsterdam Amstel.", "stop_id": "1-10 cijfers; behoud voorloopnullen. Er wordt geen volledige haltegegevensbank opgehaald.", "lines": "Optioneel: openbare lijnnummers, gescheiden door komma's.", "destination": "Optionele tekst in de bestemming; hoofdletters maken niet uit.", "walking_minutes": "De bijbehorende kaarten berekenen hiermee wanneer je moet vertrekken."}
+      },
+      "reconfigure": {
+        "title": "Favoriet wijzigen",
+        "description": "Wijzig de halte, naam of filters. De verbindingscontrole deelt hetzelfde aanvraagbudget.",
+        "data": {"name": "Naam favoriet", "stop_id": "Haltecode", "lines": "Lijnen", "destination": "Bestemming bevat", "walking_minutes": "Looptijd (minuten)"},
+        "data_description": {"name": "Je eigen naam voor deze favoriet.", "stop_id": "1-10 cijfers, inclusief voorloopnullen.", "lines": "Optionele lijnnummers, gescheiden door komma's.", "destination": "Optionele bestemmingstekst; hoofdletters maken niet uit.", "walking_minutes": "Looptijd voor de lokale vertrekteller."}
+      }
+    },
+    "error": {
+      "invalid_name": "Voer een niet-lege naam voor de favoriet in.",
+      "invalid_walk": "Voer een geheel aantal loopminuten van 0 tot 120 in.",
+      "cannot_connect": "OVAPI is niet bereikbaar. Wacht even en probeer opnieuw.",
+      "unknown_stop": "OVAPI heeft deze halte niet teruggegeven. Controleer de haltecode.",
+      "invalid_stop": "Voer een haltecode van 1-10 cijfers in.",
+      "invalid_data": "OVAPI gaf ongeldige of dubbelzinnige gegevens terug. Probeer later opnieuw.",
+      "response_too_large": "OVAPI gaf te veel gegevens terug. Verminder het aantal haltes.",
+      "rate_limited": "Het gedeelde aanvraagbudget wacht of OVAPI vraagt om een pauze. Wacht minstens twee minuten.",
+      "too_many_stops": "Er zijn maximaal tien verschillende haltecodes per Home Assistant-installatie toegestaan."
+    },
+    "abort": {"already_configured": "Deze combinatie van halte en filters bestaat al.", "reconfigure_successful": "De favoriet is bijgewerkt."}
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Voorkeuren favoriet",
+        "description": "Filters en looptijd verhogen het aantal OVAPI-aanvragen niet.",
+        "data": {"lines": "Lijnen", "destination": "Bestemming bevat", "walking_minutes": "Looptijd (minuten)"},
+        "data_description": {"lines": "Optionele lijnnummers, gescheiden door komma's.", "destination": "Optionele bestemmingstekst; hoofdletters maken niet uit.", "walking_minutes": "De bijbehorende kaarten berekenen hiermee wanneer je moet vertrekken."}
+      }
+    },
+    "error": {"already_configured": "Een andere favoriet heeft deze combinatie van halte en filters al.", "invalid_walk": "Voer een geheel aantal loopminuten van 0 tot 120 in."}
+  },
+  "entity": {
+    "sensor": {
+      "board": {"name": "Vertrekbord", "state": {"ready": "Actueel", "stale": "Verouderd"}}
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {"message": "OVAPI is niet bereikbaar; opnieuw proberen gebeurt automatisch."},
+    "unknown_stop": {"message": "OVAPI gaf deze halte niet terug. Controleer de ingestelde code."},
+    "invalid_stop": {"message": "De haltecode is ongeldig."},
+    "invalid_data": {"message": "OVAPI gaf ongeldige gegevens terug; opnieuw proberen gebeurt automatisch."},
+    "response_too_large": {"message": "Het OVAPI-antwoord overschreed de veiligheidslimiet."},
+    "rate_limited": {"message": "Wachten op het gedeelde OVAPI-aanvraagbudget."},
+    "too_many_stops": {"message": "Maximaal tien verschillende haltecodes worden ondersteund."}
+  }
+}

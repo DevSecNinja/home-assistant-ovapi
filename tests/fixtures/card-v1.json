@@ -1,0 +1,32 @@
+{
+  "contract_version": 1,
+  "board_id": "synthetic-entry",
+  "entity_id": "sensor.amsterdam_departures",
+  "stop": {"id": "SYNTHETIC_AMSTEL", "name": "Amsterdam Amstel"},
+  "status": "ready",
+  "fetched_at": "2030-01-15T12:00:00+00:00",
+  "expires_at": "2030-01-15T12:29:00+00:00",
+  "walking_minutes": 5,
+  "departures": [
+    {
+      "id": "synthetic-trip-1",
+      "line": "X1",
+      "destination": "Synthetic destination",
+      "transport": "tram",
+      "scheduled_at": "2030-01-15T12:10:00+00:00",
+      "expected_at": "2030-01-15T12:12:00+00:00",
+      "cancelled": false,
+      "delay_seconds": 120
+    },
+    {
+      "id": "synthetic-trip-2",
+      "line": "X2",
+      "destination": "Synthetic destination two",
+      "transport": "bus",
+      "scheduled_at": "2030-01-15T12:15:00+00:00",
+      "expected_at": null,
+      "cancelled": true,
+      "delay_seconds": null
+    }
+  ]
+}

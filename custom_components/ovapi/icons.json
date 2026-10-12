@@ -1,0 +1,7 @@
+{
+  "entity": {
+    "sensor": {
+      "board": {"default": "mdi:bus-clock"}
+    }
+  }
+}

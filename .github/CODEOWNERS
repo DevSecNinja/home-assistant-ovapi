@@ -1,0 +1,14 @@
+# Default owner, following DevSecNinja/repo-starter conventions.
+* @DevSecNinja
+
+# Protect ownership/config-sync exceptions.
+/.github/CODEOWNERS @DevSecNinja
+/.github/.config-sync-ignore @DevSecNinja
+
+# Routine version-manifest updates do not request an owner review.
+/.github/workflows/*.yaml
+/.github/workflows/*.yml
+/.mise.toml
+/.mise.lock
+/pyproject.toml
+/uv.lock

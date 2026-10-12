@@ -1,0 +1,28 @@
+{
+  "01234567": {
+    "Passes": {
+      "SYNTHETIC_VALID": {
+        "TransportType": "BUS",
+        "LinePublicNumber": "X1",
+        "DestinationName50": "Synthetic destination",
+        "TargetDepartureTime": "2030-01-15T13:10:00+01:00",
+        "TripStopStatus": "UNKNOWN"
+      },
+      "SYNTHETIC_NO_LINE": {
+        "TransportType": "TRAM",
+        "DestinationName50": "Synthetic destination",
+        "TargetDepartureTime": "2030-01-15T13:10:00+01:00"
+      },
+      "SYNTHETIC_NO_DESTINATION": {
+        "TransportType": "METRO",
+        "LinePublicNumber": "X3",
+        "TargetDepartureTime": "2030-01-15T13:10:00+01:00"
+      },
+      "SYNTHETIC_NO_SCHEDULE": {
+        "TransportType": "BUS",
+        "LinePublicNumber": "X4",
+        "DestinationName50": "Synthetic destination"
+      }
+    }
+  }
+}

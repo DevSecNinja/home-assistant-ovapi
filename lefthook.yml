@@ -1,0 +1,9 @@
+---
+pre-commit:
+  commands:
+    python:
+      run: mise exec -- uv run ruff check .
+    types:
+      run: mise run typecheck
+    formatting:
+      run: mise exec -- dprint check
