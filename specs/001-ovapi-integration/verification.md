@@ -145,3 +145,25 @@ package). Both runtimes retain 100% statements in every integration module,
 97.73% coordinator branches and 100% branches elsewhere/full config flow.
 `mise exec -- uv pip check --python .venv/bin/python` and the same command with
 `.venv-minimum/bin/python` report all installed packages compatible.
+
+### Targeted review follow-up
+
+Three failing-before/fixed-after cases demonstrated that a previous partial
+response or unrelated in-flight batch could leak `unknown_stop`/`cannot_connect`
+into validation of a stop that was never requested. Each shared request now returns
+only errors keyed by the timing points it actually requested. Validation uses the
+result of its awaited task, not the coordinator's retained aggregate log status.
+Cooldown and late-joining unrequested stops report `rate_limited`; participating
+stops retain the actual upstream error. No extra requests or budget bypass.
+
+`mise exec -- uv run --locked pytest tests/test_coordinator.py -k
+'partial_batch or late_validation' --no-cov -q` reproduced all three failures
+before the fix. The subsequent `mise run check` passes **158 tests on each runtime**
+and now achieves **100% statement and branch coverage in every integration module**,
+including config flow and coordinator. This supersedes the 156-test/97.73% figures
+above for the final combined follow-up.
+
+The canonical card contract explicitly says that none of the board statuses
+implies cancellation or absence of service, and a null departure field means
+unknown. The maintained Spec Kit contract points to that document; no payload
+version or shape changed. Review replies/resolution remain with the coordinator.

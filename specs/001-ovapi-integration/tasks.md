@@ -86,3 +86,8 @@ the check is not suppressed, and no merge is performed. See verification.md.
 - [x] T028 Lock a dependency-consistent minimum HA fixture in `pyproject.toml`/`uv.lock`; run the full suite and coverage gates for minimum and development runtimes through `.mise.toml` and `.github/workflows/ci.yml`.
 - [x] T029 Use `manifest.json` as integration-release authority; replace magic version assertions with static `const.VERSION`/project metadata guards in `scripts/check_package.py`, coherent-bump regressions in `tests/test_release_versions.py`, and actual outgoing User-Agent assertions in `tests/test_client.py`.
 - [ ] T030 Document independent version domains and deliberate bump procedure in `docs/development.md`; record local/hosted compatibility evidence in `verification.md`, then commit/push the same unmerged PR.
+
+## Phase 10: User-directed targeted review fixes
+
+- [x] T031 Attribute validation errors only to the current awaited batch and requested stop in `custom_components/ovapi/coordinator.py`; reproduce and fix unrelated partial-response/cooldown and late-joining in-flight failures in `tests/test_coordinator.py`.
+- [x] T032 Clarify in `docs/card-contract-v1.md` that no board status implies cancellation or absence of service, and null means unknown; the Spec Kit contract references this canonical document.

@@ -45,7 +45,9 @@ Rail services are excluded. No platform field is defined in v1.
 
 `ready` means the last refresh succeeded, including an empty board. `stale`
 means a refresh failed but retained data has not expired. `unavailable` requires
-empty departures and null fetch/expiry times. None implies cancelled/no service.
+empty departures and null fetch/expiry times. None of these board statuses implies
+cancellation or absence of service. A null departure field means that information
+is unknown.
 
 ## Countdown and retention
 

@@ -92,7 +92,7 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
         }
         self._cache: dict[str, CachedBoard] = {}
         self._pending: set[str] = set()
-        self._inflight: asyncio.Task[None] | None = None
+        self._inflight: asyncio.Task[dict[str, str]] | None = None
         self._expiry_cancel: Callable[[], None] | None = None
         self._next_request = 0.0
         self._failures = 0
@@ -146,9 +146,9 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
             raise ApiError("too_many_stops")
         self._pending.add(stop)
         try:
-            await self._refresh()
+            errors = await self._refresh()
             if self._get_board(stop) is None:
-                raise ApiError(self._error or "rate_limited")
+                raise ApiError(errors.get(stop, "rate_limited"))
         finally:
             self._pending.discard(stop)
 
@@ -156,28 +156,29 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
         await self._refresh()
         return self.statuses()
 
-    async def _refresh(self) -> None:
+    async def _refresh(self) -> dict[str, str]:
         if self._inflight is None:
             self._inflight = self.hass.async_create_task(
                 self._fetch_batch(), "ovapi batched refresh"
             )
         task = self._inflight
         try:
-            await asyncio.shield(task)
+            return await asyncio.shield(task)
         finally:
             if task.done() and self._inflight is task:
                 self._inflight = None
 
-    async def _fetch_batch(self) -> None:
+    async def _fetch_batch(self) -> dict[str, str]:
         # Yield once so simultaneous startup/flow calls contribute to one batch.
         await asyncio.sleep(0)
         stops = self._configured_stops() | self._pending
         if not stops or time.monotonic() < self._next_request:
-            return
+            return {}
         started = time.monotonic()
         self._next_request = started + POLL_SECONDS
         self.request_count += 1
         previous_error = self._error
+        errors: dict[str, str] = {}
         try:
             result = await self.client.fetch(stops)
         except ApiError as err:
@@ -187,6 +188,7 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
                 err.retry_after,
             )
             self._error = err.code
+            errors = dict.fromkeys(stops, err.code)
             for board in self._cache.values():
                 board.stale = True
         else:
@@ -199,6 +201,7 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
                     continue
                 if departures is None:
                     self._error = "unknown_stop"
+                    errors[stop] = "unknown_stop"
                     if stop in self._cache:
                         self._cache[stop].stale = True
                     continue
@@ -214,6 +217,7 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
             _LOGGER.info("OVAPI connection recovered")
         self._schedule_expiry()
         self.async_set_updated_data(self.statuses())
+        return errors
 
     @callback
     def _schedule_expiry(self) -> None:

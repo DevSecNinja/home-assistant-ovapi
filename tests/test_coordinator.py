@@ -118,11 +118,47 @@ async def test_partial_batch_and_unknown_stop(hass, api, payload, freezer):
     await tick(hass, freezer, 121)
     assert coordinator.status("01234567") == "stale"
     assert api.call_count == 1
-    # Missing data for a new stop cannot become a fabricated empty board.
-    await tick(hass, freezer, 120)
+    # This stop was never requested, so the previous stop's error cannot apply.
+    with pytest.raises(ApiError, match="rate_limited"):
+        await coordinator.async_validate("76543210")
+    assert api.call_count == 1
+    freezer.tick(121)
+    api.get("http://v0.ovapi.nl/tpc/01234567,76543210/departures", json={})
+    # Only a response to a batch that included this stop proves it is unknown.
     with pytest.raises(ApiError, match="unknown_stop"):
         await coordinator.async_validate("76543210")
     assert api.call_count == 2
+
+
+@pytest.mark.parametrize(
+    "status,error", [(200, "unknown_stop"), (503, "cannot_connect")]
+)
+async def test_late_validation_does_not_inherit_unrelated_batch_error(
+    hass, api, status, error
+):
+    coordinator = get_coordinator(hass)
+    entered = asyncio.Event()
+    release = asyncio.Event()
+
+    async def delayed(method, url, data):
+        entered.set()
+        await release.wait()
+        return AiohttpClientMockResponse(method, url, status=status, json={})
+
+    api.get("http://v0.ovapi.nl/tpc/01234567/departures", side_effect=delayed)
+    requested = asyncio.create_task(coordinator.async_validate("01234567"))
+    await entered.wait()
+    late = asyncio.create_task(coordinator.async_validate("76543210"))
+    await asyncio.sleep(0)
+    release.set()
+    requested_error, late_error = await asyncio.gather(
+        requested, late, return_exceptions=True
+    )
+    assert isinstance(requested_error, ApiError)
+    assert requested_error.code == error
+    assert isinstance(late_error, ApiError)
+    assert late_error.code == "rate_limited"
+    assert api.call_count == 1
 
 
 async def test_unload_during_fetch_does_not_repopulate(hass, api, payload, freezer):
