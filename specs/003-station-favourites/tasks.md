@@ -54,7 +54,7 @@ server pause; the extracted package serves authenticated local artwork.
 
 - [x] T015 Update `README.md`, `docs/README.nl.md`, `docs/policy.md`, `docs/quality.md` and `docs/development.md` for delivered behavior and deferred #5.
 - [x] T016 Run final minimum/current suites, per-module coverage, typing/lint/package and record exact results in `specs/003-station-favourites/verification.md`.
-- [ ] T017 Commit/push the independent actual-scope PR using `.github/PULL_REQUEST_TEMPLATE.md`; coordinate native Copilot review and record addressed feedback in verification evidence.
+- [x] T017 Commit/push the independent actual-scope PR using `.github/PULL_REQUEST_TEMPLATE.md`; coordinate native Copilot review and record addressed feedback in verification evidence.
 
 ## Dependencies and execution order
 
