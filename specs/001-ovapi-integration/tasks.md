@@ -75,3 +75,7 @@ against FR-001 through FR-009 and SC-001 through SC-005 before pushing.
 External limitation: initial HACS license validation reads default-branch metadata,
 which is null until the first authorized merge. The branch includes MIT LICENSE;
 the check is not suppressed, and no merge is performed. See verification.md.
+
+## Phase 8: Convergence
+
+- [x] T026 Honor the full response-relative Retry-After delay in `custom_components/ovapi/coordinator.py` and prove slow-response request counts in `tests/test_coordinator.py` per FR-002/SC-002 (partial).

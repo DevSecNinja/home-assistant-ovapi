@@ -7,7 +7,7 @@ pytest-homeassistant-custom-component 0.13.372; all dependencies in `uv.lock`.
 
 - `mise run check`: passes. Includes pytest, strict mypy, ruff lint/format,
   dprint, yamlfmt, actionlint, offline zizmor and installation archive checks.
-- `mise run test`: **106 passed**, entirely synthetic/offline. Every integration
+- `mise run test`: **107 passed**, entirely synthetic/offline. Every integration
   module has **100% statement coverage**. Coordinator branch coverage is **97.73%**;
   all other modules including config flow are **100%**. The separate gate checks
   every module's statements and branches, not only an aggregate.
@@ -50,6 +50,9 @@ pytest-homeassistant-custom-component 0.13.372; all dependencies in `uv.lock`.
   Such records are omitted, with synthetic producer/consumer edge evidence.
 - No test teardown leaks: global coordinator shutdown cancels expiry/in-flight work;
   explicit unload clears the last-user stop cache.
+- Retry-After/backoff deadlines start when the failure response is received, not
+  when the request began. A 19-second response-delay regression proves a
+  600-second Retry-After cannot be shortened by request latency.
 
 ## Bounded live verification
 

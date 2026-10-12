@@ -182,7 +182,7 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
             result = await self.client.fetch(stops)
         except ApiError as err:
             self._failures += 1
-            self._next_request = started + max(
+            self._next_request = time.monotonic() + max(
                 min(POLL_SECONDS * 2 ** min(self._failures, 5), MAX_BACKOFF_SECONDS),
                 err.retry_after,
             )

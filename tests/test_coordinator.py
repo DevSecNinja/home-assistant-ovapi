@@ -230,3 +230,27 @@ async def test_filtering_and_display_cap(hass, api, payload, freezer):
     await hass.async_block_till_done()
     assert coordinator.snapshot(entry, "sensor.test")["departures"] == []
     assert api.call_count == 1
+
+
+async def test_retry_after_starts_at_response_receipt(hass, api, payload, freezer):
+    freezer.move_to("2030-01-15T12:00:00+00:00")
+    entry = await setup_entry(hass, api, payload)
+    coordinator = entry.runtime_data
+    api.clear_requests()
+
+    async def slow_limit(method, url, data):
+        freezer.tick(19)
+        return AiohttpClientMockResponse(
+            method, url, status=429, headers={"Retry-After": "600"}
+        )
+
+    api.get("http://v0.ovapi.nl/tpc/01234567/departures", side_effect=slow_limit)
+    freezer.tick(121)
+    await coordinator.async_refresh()
+    assert api.call_count == 1
+    freezer.tick(599)
+    await coordinator.async_refresh()
+    assert api.call_count == 1
+    freezer.tick(2)
+    await coordinator.async_refresh()
+    assert api.call_count == 2
