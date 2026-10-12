@@ -1,0 +1,119 @@
+# Stop-picker verification
+
+Date: 2026-10-12. New branch `devsecninja-ovapi-stop-name-picker` starts at merged
+main `42cc323`; the previous implementation PR is not reopened. No releases,
+merges or live Home Assistant modifications are performed.
+
+## Final policy and compatibility
+
+The user's speed correction supersedes the initial all-request 120-second floor.
+Normal setup can perform the directory and selected-area request immediately,
+including immediately after a board poll. One instance-wide monotonic deque limits
+discovery to two starts per rolling 120 seconds, not two per flow. Every request
+shares transport serialization, request counting and response-relative
+failure/Retry-After backoff. Each discovery start defers ordinary polling; only
+extra lookups after the pair can reserve an eligible board refresh for fairness.
+Background batches remain at least 120 seconds apart.
+
+Tests assert actual intercepted HTTP counts: the first pair needs no minute-scale
+clock advance, selected-stop validation adds no third request, staggered starts
+enforce a rolling rather than fixed window, and eviction/cancellation/reopening
+cannot reset the allowance. Server backoff blocks unused interactive capacity too.
+
+Original wall/monotonic expiry remains 1740 seconds, with no source-age reset on
+selection or replay. Cached lookup tasks return no dataset, active form schemas
+discard labels on expiry, and flow abort cancels pending work. Valid empty timing
+points remain selectable with no invented transport mode/direction. Known
+unsupported-only points are excluded; departures remain bus/tram/metro only.
+
+Manifest/project/User-Agent remain 0.1.0. Configuration schema and card contract
+remain version 1. HACS minimum remains 2026.10.0 with exact fixture 0.13.371;
+locked development remains HA 2026.10.1 with fixture 0.13.372. No migration needed.
+
+## Executed local checks
+
+| Command                                                                   | Result                                                                  |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `mise run test`                                                           | Passed: 246 tests on locked HA 2026.10.1                                |
+| `mise run test-minimum`                                                   | Passed: the same 246 tests on exact HA 2026.10.0                        |
+| `mise exec -- uv run --locked pytest tests/test_discovery.py -q --no-cov` | Passed: 54 tests, including maximum-size cached search under one second |
+| `mise run test-ui -- -q --tb=short --show-capture=no`                     | Passed: real HA frontend, 1 browser scenario, 7.60 seconds              |
+| `mise run typecheck`                                                      | Passed: strict mypy, all nine integration modules                       |
+| `mise run package`                                                        | Passed: 15 integration files, translations and unchanged version guards |
+| `mise run lint`                                                           | Passed: ruff, dprint, yamlfmt, actionlint and offline zizmor            |
+
+Every integration module has 100% statement coverage. Coordinator branches are
+97.67%; all other modules, including config flow, have 100% branch coverage.
+The normal/minimum suites intentionally deselect the optional browser scenario;
+it runs separately with the pinned `e2e` dependency group.
+
+The public-flow suites include real HTTP setup, options and reconfigure forms,
+not only probatio form objects. The browser harness observes actual WebSocket
+subscription acknowledgments and progressed frames before fake-time advancement;
+there are no fixed readiness sleeps and no manual flow-manager advancement in
+its browser journey. Only its loopback HA origin is permitted in the browser.
+
+## Actual native frontend evidence
+
+HA 2026.10.1, frontend 20260930.3, Chromium 141 (Playwright 1.56.0). Desktop
+1280 x 900 and phone 390 x 844. All data and account state are synthetic.
+
+- [Desktop town/name choices](evidence/desktop-stop-search.png)
+- [Phone timing-point selection](evidence/phone-timing-point.png)
+- [Phone exhausted-allowance progress](evidence/phone-progress.png)
+- [Phone no-match recovery](evidence/phone-search-error.png)
+- [Phone automatic expiry/retry](evidence/phone-expired-selection.png)
+
+The first cold setup creates a loaded favourite with two immediate requests.
+A second cache-only setup adds none. The native UI continues after actual progress
+events, shows a no-match error, recovers, and switches automatically to a
+source-free retry form at original expiry. A separate exhausted-allowance case
+waits visibly, then continues automatically without weakening production limits.
+The HA test clock advances time; this is not a real-network latency benchmark.
+
+An early browser run reproduced a genuine lost fast-progress event: HA emits it
+before the frontend subscribes. The fix retries only source-free flow-change
+notifications at 1-to-30-second intervals until continuation, abort, expiry or
+shutdown, with a 29-minute ceiling. It neither delays an upstream request nor
+adds a polling endpoint. Both cold and cache-only browser paths exercise it.
+
+Screenshots are committed under `specs/002-stop-name-picker/evidence/`.
+Original harness outputs remain at `.ha-e2e/evidence/` in this worktree.
+The browser and temporary HA server are stopped by fixture cleanup.
+
+## Bounded live source verification
+
+Three metadata-only requests were made, each spaced beyond the original
+120-second floor. The first exposed an over-restrictive ASCII-leading area-code
+regex. Aggregate diagnostics found 4,590 records, valid town/name metadata
+throughout, and eight five-/six-character codes rejected by that regex.
+
+After accepting printable source codes up to ten characters, rejecting
+traversal/batching delimiters and encoding complete URL segments, the actual
+production `OvapiClient.fetch_directory()` **passed with 4,590 parsed areas**.
+Only outcomes/counts were emitted. No live catalogue, coordinates, departures or
+response bodies were saved. Punctuation/Unicode/URL-encoding regressions use
+synthetic fixtures. No live selected-area departures were needed for this check.
+
+## HACS installation links and remaining boundaries
+
+The user's additional request adds the official My Home Assistant HACS repository
+badge to English/Dutch backend installation docs, with owner/repository/category
+verified against the live redirect page. It opens HACS repository confirmation,
+requires HACS already installed, and does not silently install anything. Manual
+instructions remain. The companion-card badge is coordinated separately.
+
+HTTP transport, incomplete/variable coverage, unknown mode at empty points, the
+unavailable linked full GOVI license and lack of a published numeric quota remain
+explicit limitations. Suspended/disconnected browsers cannot be forcibly erased;
+active dialogs update, backend data expires and replay fails closed. Full companion
+card E2E is not rerun because the wire contract is unchanged.
+
+Hosted CI and final pre-commit/commit evidence are recorded after PR creation.
+
+## Convergence assessment
+
+All 10 functional requirements, 5 success criteria, 7 acceptance scenarios,
+9 plan decisions and 5 governing principles were assessed. No production-code
+gap remained. The native search/progress description was aligned with the actual
+rendered controls; final delivery evidence is the remaining tracked task.

@@ -77,6 +77,29 @@ incompatible with HA's aiohttp 3.14; no production compatibility patch was added
 
 ## Synthetic integration/card E2E
 
+### Native stop-picker browser check
+
+```sh
+mise exec -- uv sync --locked --group e2e
+mise exec -- uv run --locked --group e2e playwright install chromium
+mise run test-ui
+```
+
+The optional locked `e2e` group provides HA's matching frontend and Playwright.
+The normal/minimum suites exclude the `frontend` marker; they still exercise real
+HTTP config/options/reconfigure serialization. `test-ui` launches an isolated HA
+fixture on loopback and a browser, intercepts upstream HTTP with synthetic data,
+and blocks browser requests outside that test origin. It closes the browser and
+server on completion. No user's HA, real token, directory or schedule is used.
+
+Screenshots are written to ignored `.ha-e2e/evidence/`; set `OVAPI_UI_ARTIFACTS`
+when invoking pytest directly to retain them elsewhere. Phone/desktop checks
+cover cold setup, actual native progress events, cache-only setup, no-match error
+recovery and automatic expiry. Time is advanced by the HA test clock, not by
+manually advancing configuration steps or reducing production request limits.
+
+### Companion-card E2E
+
 Do not point development tests at a live HA installation or public OVAPI.
 The companion repository owns the combined browser/HA scenario. To reproduce its
 backend side:
@@ -120,10 +143,11 @@ resolved official templates, ran `setup-plan.sh`, `setup-tasks.sh` and
 phases without spawning additional agents. `.specify/feature.json` selects the
 feature independently of the app-managed Git branch and is upstream-defined local
 state (ignored by Git). The repository-local mise environment sets
-`SPECIFY_FEATURE_DIRECTORY=specs/001-ovapi-integration` so fresh checkouts reproduce
+`SPECIFY_FEATURE_DIRECTORY=specs/002-stop-name-picker` so fresh checkouts reproduce
 feature resolution. Constitution, specification,
 plan, research, data model, contract, tasks and verification live in
-`specs/001-ovapi-integration/` and `.specify/memory/constitution.md`.
+`specs/001-ovapi-integration/`, `specs/002-stop-name-picker/` and
+`.specify/memory/constitution.md`.
 
 Run `mise run specify -- --help` for the pinned CLI. Never replace these artifacts
 with similarly named documents while omitting actual toolkit initialization.

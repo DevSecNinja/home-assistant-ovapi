@@ -3,15 +3,20 @@
 import json
 import logging
 import re
+import zlib
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
-from typing import Literal, TypedDict
+from typing import TYPE_CHECKING, Literal, TypedDict
+from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 import aiohttp
 
 from .const import API_URL, MAX_RESPONSE_BYTES, MAX_STOPS, USER_AGENT
+
+if TYPE_CHECKING:
+    from .discovery import StopArea, TimingPoint
 
 _LOGGER = logging.getLogger(__name__)
 _DUTCH_TZ = ZoneInfo("Europe/Amsterdam")
@@ -189,12 +194,42 @@ class OvapiClient:
         ):
             raise ApiError("invalid_stop")
         url = f"{API_URL}/{','.join(sorted(stops))}/departures"
+        payload = await self._request(url)
+        return {
+            stop: parse_board(payload[stop]) if stop in payload else None
+            for stop in stops
+        }
+
+    async def fetch_directory(self) -> tuple[StopArea, ...]:
+        from .discovery import AREA_URL, MAX_DIRECTORY_BYTES, parse_directory
+
+        return parse_directory(await self._request(f"{AREA_URL}/", MAX_DIRECTORY_BYTES))
+
+    async def fetch_area(self, area: str) -> dict[str, TimingPoint]:
+        from .discovery import AREA_URL, parse_area, valid_area
+
+        if not valid_area(area):
+            raise ApiError("invalid_area")
+        try:
+            payload = await self._request(
+                f"{AREA_URL}/{quote(area, safe='')}/departures"
+            )
+        except ApiError as err:
+            if err.code == "unknown_stop":
+                raise ApiError("unknown_area", err.retry_after) from None
+            raise
+        return parse_area(payload, area)
+
+    async def _request(
+        self, url: str, limit: int = MAX_RESPONSE_BYTES
+    ) -> dict[str, object]:
         try:
             async with self._session.get(
                 url,
                 headers={"User-Agent": USER_AGENT, "Accept-Encoding": "gzip"},
                 timeout=aiohttp.ClientTimeout(total=20),
                 allow_redirects=False,
+                auto_decompress=False,
             ) as response:
                 if response.status != 200:
                     code = {
@@ -204,20 +239,37 @@ class OvapiClient:
                     raise ApiError(
                         code, retry_after_seconds(response.headers.get("Retry-After"))
                     )
+                encoding = response.headers.get("Content-Encoding", "identity")
+                if encoding not in ("identity", "gzip"):
+                    raise ApiError("invalid_data")
+                decoder = (
+                    zlib.decompressobj(16 + zlib.MAX_WBITS)
+                    if encoding == "gzip"
+                    else None
+                )
                 body = bytearray()
+                received = 0
                 async for chunk in response.content.iter_chunked(64 * 1024):
-                    body.extend(chunk)
-                    if len(body) > MAX_RESPONSE_BYTES:
+                    received += len(chunk)
+                    if received > limit:
                         raise ApiError("response_too_large")
+                    body.extend(
+                        decoder.decompress(chunk, limit - len(body) + 1)
+                        if decoder
+                        else chunk
+                    )
+                    if len(body) > limit:
+                        raise ApiError("response_too_large")
+                if decoder and (not decoder.eof or decoder.unused_data):
+                    raise ApiError("invalid_data")
                 try:
                     payload = json.loads(body)
                 except ValueError, UnicodeDecodeError:
                     raise ApiError("invalid_data") from None
                 if not isinstance(payload, dict):
                     raise ApiError("invalid_data")
-                return {
-                    stop: parse_board(payload[stop]) if stop in payload else None
-                    for stop in stops
-                }
+                return payload
+        except zlib.error:
+            raise ApiError("invalid_data") from None
         except aiohttp.ClientError, TimeoutError:
             raise ApiError("cannot_connect") from None

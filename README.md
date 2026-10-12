@@ -1,13 +1,13 @@
 # OVAPI for Home Assistant
 
 Public-transport departure boards with one shared, conservative request budget.
-Configure favourite timing points, line/destination filters and walking duration,
+Find favourite stops by town/name, set line/destination filters and walking duration,
 then use the [companion Lovelace cards](https://github.com/DevSecNinja/lovelace-ovapi)
 for upcoming departures and local "leave in" countdowns.
 
 **Custom integration, not an officially rated Gold/Platinum integration.**
 Home Assistant 2026.10 or newer is required. This repository is HACS-ready; the
-initial implementation is delivered on a review branch, with no release published.
+integration has no release publication automation yet.
 [Nederlands](docs/README.nl.md).
 
 ## Important boundaries
@@ -21,8 +21,9 @@ initial implementation is delivered on a review branch, with no release publishe
   hostname validation during verification on 2026-10-12. We neither disable TLS
   checks nor silently downgrade a request. No credentials are sent upstream.
 - The wiki discourages small-interval scraping but publishes no numeric allowance.
-  A **120-second global minimum** is our conservative engineering choice, not an
-  official permission or guarantee. See [policy and retention](docs/policy.md).
+  Background batches stay at least **120 seconds apart**; interactive discovery
+  has a shared allowance of **two requests per rolling 120 seconds**. These are
+  engineering choices, not official quotas. See [policy and retention](docs/policy.md).
 - Departure data is ephemeral: **not a normal departure sensor attribute** and not
   available for historical automations, Recorder, statistics or restored state.
   The only sensor is operational board status. This is an intentional retention
@@ -32,7 +33,12 @@ initial implementation is delivered on a review branch, with no release publishe
 
 ### HACS
 
-Once the implementation is on the repository's default branch:
+[![Open OVAPI in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=DevSecNinja&repository=home-assistant-ovapi&category=integration)
+
+With HACS already installed, use the button to open this repository in your Home
+Assistant instance, confirm adding it if prompted, and download OVAPI. Restart
+Home Assistant afterwards. If the link does not open your instance, use these
+manual steps:
 
 1. In HACS, open **Custom repositories**.
 2. Add `https://github.com/DevSecNinja/home-assistant-ovapi`, category **Integration**.
@@ -57,6 +63,24 @@ into a configuration directory only when intentionally installing.
 
 Each favourite creates a service device and one status sensor.
 
+Choose **Find a stop by name**, enter a town and part of the stop name, and select
+the matching **town - stop name**. Then choose your stop sign/direction from the
+source-provided names, lines and destination examples. Codes distinguish otherwise
+identical choices; you do not need to find them externally. Search ignores case
+and accents; narrow searches with more than 50 matches.
+
+**Normal cold setup has no deliberate two-minute wait.** Its directory and
+selected-area request can run immediately, even after a board refresh. Completion
+depends on network latency and your selection, not a guaranteed wall-time SLA.
+All flows share two discovery requests per rolling 120 seconds; a third uncached
+lookup must wait. Closing/reopening setup or reloading the integration does not
+reset that allowance. Cached searches are local and consume no requests.
+
+Progress continues automatically; close the dialog to cancel. Server failures and
+`Retry-After` pauses apply to setup too and can require longer waits. Each lookup
+defers the next ordinary poll, avoiding a redundant immediate request. Only extra
+lookups after a pair can wait for an eligible board refresh to keep polling fair.
+
 | Setting              | Description                                                                                                              |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | Favourite name       | Your label, 1-80 characters; for example Amsterdam Amstel.                                                               |
@@ -65,22 +89,31 @@ Each favourite creates a service device and one status sensor.
 | Destination contains | Optional case-insensitive substring filter.                                                                              |
 | Walking time         | 0-120 whole minutes; used by the cards, not sent to OVAPI.                                                               |
 
-Obtain the correct timing-point code from the stop/operator's published information.
-We do not download/scrape a complete stop directory. Do not assume a station name
-or national stop identifier is interchangeable with an OVAPI timing-point code.
+**Enter a timing-point code (advanced)** remains available for known codes.
+Do not assume a national stop identifier is interchangeable with an OVAPI code.
+The on-demand directory contains metadata only; departure details are requested
+only for the selected area, never expanded across the whole network.
+Line/destination examples are not complete coverage or a permanent direction.
+Valid empty timing points remain selectable, but without current information the
+transport mode or direction may be unknown. Known unsupported-only points are
+omitted. Empty results do not prove that there are no services.
 Up to ten **distinct timing points** are supported per HA instance. Add multiple
 favourites for one timing point if their filters differ; identical stop/filter
 combinations are rejected even when the display names differ.
 
-New stops are validated through the same shared budget as polling. Adding a stop
-immediately after another request may ask you to retry after at least two minutes.
-This deliberate throttle also applies to reload/startup retries and manual updates.
+Selecting a timing point reuses its acquired board and original expiry, without a
+third validation request. Advanced manual validation still reports cooldown when
+necessary; wait at least two minutes before retrying. The same throttle applies
+to reload/startup retries and manual updates.
 Polling is always on while an enabled board entity or card subscription is active;
 there are no travel windows, interval fields, or timing settings to configure.
 
 Use **Configure** to change walking time/filters locally, with no network request
 or interruption. Use **Reconfigure** to change the timing point or configured name.
-Reconfiguration/reload may briefly wait for the shared request budget.
+Reconfiguration offers the same name picker and interactive allowance, preserving favourite/entity IDs
+and existing options. Lookup choices expire within 29 minutes; an expired dialog
+asks you to load fresh choices. Only your selected name/code and preferences are
+stored, not the directory, candidates or downloaded departures.
 Removing/renaming the entity in HA's registry is supported; update card YAML if you
 change its entity ID.
 
@@ -173,7 +206,7 @@ To remove, delete the favourite in **Settings > Devices & services**. Remove
 associated dashboard cards, then remove the integration in HACS (or delete only
 the installed `custom_components/ovapi` directory) and restart HA if uninstalling
 the code. Unloading/removing the last favourite for a stop clears its live cache.
-There is no departure-history database or restore file to clean up.
+There is no departure-history database, directory cache file or restore file to clean up.
 
 ## Development and quality
 

@@ -14,6 +14,7 @@ dev = [
 # This fixture's own HA pin must equal hacs.json's declared minimum.
 # Update deliberately with the supported floor, not with routine dev updates.
 minimum = ["pytest-homeassistant-custom-component==0.13.371"]
+e2e = ["home-assistant-frontend==20260930.3", "playwright==1.56.0"]
 
 [tool.uv]
 conflicts = [[{ group = "dev" }, { group = "minimum" }]]
@@ -23,7 +24,8 @@ testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-addopts = "--disable-socket --allow-unix-socket --cov=custom_components.ovapi --cov-branch --cov-report=term-missing --cov-report=json:coverage.json"
+addopts = "-m 'not frontend' --disable-socket --allow-unix-socket --cov=custom_components.ovapi --cov-branch --cov-report=term-missing --cov-report=json:coverage.json"
+markers = ["frontend: optional actual HA frontend browser evidence (requires e2e group)"]
 
 [tool.coverage.run]
 source = ["custom_components.ovapi"]

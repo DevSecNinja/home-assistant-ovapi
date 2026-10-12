@@ -20,6 +20,25 @@ every currently published rule in
 | User docs                                  | English/Dutch setup, all settings, removal, examples, update behavior, limitations and troubleshooting |
 | Reproducibility                            | Repository-local mise, frozen uv lock, actual pinned Spec Kit, shared org CI                           |
 
+## Stop-picker evidence
+
+The [stop-picker verification](../specs/002-stop-name-picker/verification.md)
+records exact minimum/locked-runtime commands and rendered native UI evidence.
+`test_picker_flow.py` exercises public setup/reconfigure/options and real HTTP
+serialization. `test_discovery_coordinator.py` measures shared request counts,
+fairness, cancellation, original-age cache expiry and no third validation request.
+`tests/ui/test_native_picker.py` drives actual HA forms in Chromium, including a
+new cache-only dialog and a delayed-budget path; native events, not test calls to
+the flow manager, continue the browser.
+
+HA can emit completed-progress events before its frontend subscribes. Source-free
+notifications are retried with 1-to-30-second backoff only until continuation,
+abort, expiry or shutdown (at most 29 minutes). This is not upstream polling.
+The browser test reproduced the stuck spinner before this fix. Directory labels
+are cleared from backend schemas at original expiry and the active native dialog
+switches to a source-free retry form. Missing/empty stop information remains
+honest, including valid empty timing points whose transport mode is unknown.
+
 ## Honest external gaps
 
 Brand assets have **not** been submitted to Home Assistant's separate brands
