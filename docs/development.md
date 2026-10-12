@@ -95,6 +95,13 @@ that permission **only to the shared-lint job**. Other jobs remain contents-read
 The first hosted run demonstrated this static permission requirement; it is a
 documented central-workflow limitation, not an enabled publication/upload action.
 
+On the initial PR, HACS's license check reads GitHub repository metadata, which
+still reflects the bootstrap default branch without a license. The review branch
+includes the MIT `LICENSE`, but HACS reports that metadata check as failed until
+an authorized merge updates the default branch. Do not suppress the license check
+or modify `main` just to make the initial check green. All other enabled HACS
+checks passed; brand submission remains the only explicit HACS exception.
+
 Canonical EditorConfig, dprint, yamlfmt, gitleaks and Renovate settings are adopted.
 Documented deviations: Python uses four-space indentation; generated Spec Kit
 assets and the virtual environment are excluded from project formatting; redundant

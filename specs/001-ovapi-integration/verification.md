@@ -57,12 +57,36 @@ One small, identified, gzip-enabled Amsterdam batch returned HTTP 200; candidate
 timing points `30009501` and `30009514` matched the expected location names and both
 contained supported-mode records. No live response, schedule or route was logged
 or stored. This is not a coverage guarantee for every service/platform.
+A second batch, spaced at least 120 seconds later, used the actual production
+`OvapiClient` and successfully parsed supported departures at both points, again
+retaining no source payload. Two premature attempts were blocked by the research
+request-floor guard before making any network call.
 
 ## External checks and limitations
 
-Official HACS/hassfest PR jobs and combined actual HA/Lovelace browser verification
-are tracked separately until their outcomes are available. Local archive checks
-are not represented as a substitute for those official checks.
+Hosted run
+[38223894553](https://github.com/DevSecNinja/home-assistant-ovapi/actions/runs/38223894553)
+passed the Linux backend (including all tests/types/package), shared organization
+lint jobs, and official hassfest. Hassfest's advisory about missing `CONFIG_SCHEMA`
+was fixed by explicitly declaring config-entry-only setup and revalidated.
+
+Official HACS validated seven of eight checks; **license metadata is blocked**.
+GitHub reports repository `license: null` because `main` still contains only the
+bootstrap README. The review branch has the full MIT `LICENSE`. HACS reads
+repository/default-branch metadata, so this check cannot pass until an authorized
+merge updates it. We do not suppress the license check, alter `main`, or merge.
+Branding alone is deliberately ignored pending separate HA brands submission.
+
+The sibling reported **PASS** for actual isolated HA 2026.10.1 with frontend
+20260930.3: real HTTP config flow/create-entry, registered ready sensor,
+authenticated v1 WebSocket, global resource registration, dedicated Lovelace
+dashboard, and both production cards rendered at phone/tablet sizes.
+Assertions included walking time 5, two complete synthetic trips including a
+cancelled one, omitted incomplete metadata, no departure state attributes and
+zero browser requests to OVAPI. Only the transport was replaced with synthetic
+`parse_board` input; the user's live HA was untouched. The isolated server was
+stopped by the sibling. This is separate evidence, not simulated by local package
+checks.
 
 HA brand submission, independent API-library extraction/Core review, license-link
 restoration/upstream numeric quota confirmation, and releases remain external
@@ -71,6 +95,7 @@ Gold/Platinum claim. HTTP and transient-only automation limitations are explicit
 
 ## Convergence status
 
-Buildable backend requirements and the appended convergence edge tasks pass locally.
-Final convergence/delivery awaits official PR check outcomes and the sibling's
-combined E2E report. No package/release publication or live-user installation occurs.
+Buildable backend requirements and appended convergence edge tasks pass locally
+and on hosted Linux; combined actual HA/card E2E passes. The remaining external
+HACS default-branch license metadata blocker is explicitly recorded above.
+No package/release publication, merge or live-user installation occurs.

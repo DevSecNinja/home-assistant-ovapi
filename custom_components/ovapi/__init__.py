@@ -4,15 +4,17 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from .client import ApiError
-from .const import CONF_STOP
+from .const import CONF_STOP, DOMAIN
 from .coordinator import OvapiCoordinator, get_coordinator
 from .websocket import async_register_websocket
 
 type OvapiConfigEntry = ConfigEntry[OvapiCoordinator]
 PLATFORMS = [Platform.SENSOR]
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:

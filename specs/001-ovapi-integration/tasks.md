@@ -48,8 +48,8 @@
 - [x] T017 Adopt applicable organization configs and SHA-pinned reusable lint in `.github/workflows/`.
 - [x] T018 Add strict per-module >95% / full-flow gates and package checks in `scripts/`.
 - [x] T019 Execute `mise run test`, `lint`, `typecheck`, `package`; fix all implementation failures.
-- [ ] T020 Assess convergence and record exact results/limitations in `specs/001-ovapi-integration/verification.md`.
-- [ ] T021 Commit and push the implementation branch without merging/publishing.
+- [x] T020 Assess convergence and record exact results/limitations in `specs/001-ovapi-integration/verification.md`.
+- [x] T021 Commit and push the implementation branch without merging/publishing.
 
 ## Dependencies and execution
 
@@ -70,4 +70,8 @@ against FR-001 through FR-009 and SC-001 through SC-005 before pushing.
 - [x] T022 Verify loaded reconfiguration, shared-stop unload, filtering/cap and clock-change expiry in `tests/test_config_flow.py` and `tests/test_coordinator.py` per FR-001/FR-003/SC-003 (partial).
 - [x] T023 Add shared incomplete-source fixture and producer mapping regression in `tests/fixtures/card-source-edge.json` and `tests/test_client.py` per FR-005 and contract nonempty fields (partial).
 - [x] T024 Record bounded actual Amsterdam verification and static example IDs in `README.md`, `docs/README.nl.md` and `specs/001-ovapi-integration/research.md` per FR-007 (partial).
-- [ ] T025 Run official HACS/hassfest review checks and final Spec Kit convergence, recording any external limitations in `specs/001-ovapi-integration/verification.md` per FR-008/FR-009 (partial).
+- [x] T025 Run official HACS/hassfest review checks and final Spec Kit convergence, recording any external limitations in `specs/001-ovapi-integration/verification.md` per FR-008/FR-009 (partial).
+
+External limitation: initial HACS license validation reads default-branch metadata,
+which is null until the first authorized merge. The branch includes MIT LICENSE;
+the check is not suppressed, and no merge is performed. See verification.md.
