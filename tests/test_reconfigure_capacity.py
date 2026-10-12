@@ -291,3 +291,68 @@ async def test_abort_inflight_manual_replacement_cannot_restore_target(
     assert TARGET not in coordinator._cache
     assert not coordinator._reservations
     assert len(coordinator._cache) == 10
+
+
+async def test_late_replacement_keeps_old_board_and_reports_cooldown(
+    hass, api, freezer
+):
+    from pytest_homeassistant_custom_component.test_util.aiohttp import (
+        AiohttpClientMockResponse,
+    )
+
+    first = await prepare(hass, api)
+    second = hass.config_entries.async_entries("ovapi")[1]
+    coordinator = get_coordinator(hass)
+    original = coordinator._cache[CODES[1]]
+    flows = []
+    for entry in (first, second):
+        result = await hass.config_entries.flow.async_init(
+            "ovapi",
+            context={
+                "source": config_entries.SOURCE_RECONFIGURE,
+                "entry_id": entry.entry_id,
+            },
+        )
+        await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "manual"}
+        )
+        flows.append(result["flow_id"])
+    started, finish = asyncio.Event(), asyncio.Event()
+    codes = sorted([*CODES[1:], TARGET])
+
+    async def response(method, url, data):
+        started.set()
+        await finish.wait()
+        return AiohttpClientMockResponse(
+            method, url, json={code: {"Passes": {}} for code in codes}
+        )
+
+    api.get(
+        f"http://v0.ovapi.nl/tpc/{','.join(codes)}/departures", side_effect=response
+    )
+    freezer.tick(120)
+    first_task = asyncio.create_task(
+        hass.config_entries.flow.async_configure(
+            flows[0], {"name": "First replacement", "stop_id": TARGET}
+        )
+    )
+    await started.wait()
+    late_task = asyncio.create_task(
+        hass.config_entries.flow.async_configure(
+            flows[1], {"name": "Late replacement", "stop_id": "08888888"}
+        )
+    )
+    await settle()
+    assert coordinator._cache[CODES[1]] is original
+    finish.set()
+    first_result, late_result = await asyncio.gather(first_task, late_task)
+    await hass.async_block_till_done()
+    assert first_result["reason"] == "reconfigure_successful"
+    assert late_result["errors"]["base"] == "rate_limited"
+    assert second.data["stop_id"] == CODES[1]
+    assert coordinator.status(CODES[1]) == "ready"
+    assert "08888888" not in coordinator._cache
+    assert not coordinator._reservations
+    assert len(coordinator._cache) == coordinator.stop_count == 10
+    assert api.call_count == 2
+    hass.config_entries.flow.async_abort(flows[1])

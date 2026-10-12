@@ -196,3 +196,20 @@ Fresh, synthetic screenshots are committed in `evidence/review-fixes/`:
 The original six threads remain owned by the coordinator for replies/resolution
 after verifying the new PR. Hosted and follow-up review results will be recorded
 after that PR is opened.
+
+The new follow-up is [PR #4](https://github.com/DevSecNinja/home-assistant-ovapi/pull/4).
+Its first hosted locked-runtime lane exposed a test bootstrap race: simultaneous
+flow initialization did not guarantee simultaneous validation submissions.
+Commit `565a04e` initializes both public manual forms first, then submits both
+through the public flow manager concurrently. The exact combined ten-point
+request and request-count assertions remain unchanged.
+[Hosted run 38246991235](https://github.com/DevSecNinja/home-assistant-ovapi/actions/runs/38246991235)
+passes both backend lanes, HACS, hassfest and every enabled shared lint job.
+
+A separate event-gated late-arrival test verifies the contrasting case: when a
+second replacement joins after the batch starts, it reports cooldown, keeps its
+old configured board, releases its reservation, and sends no extra request.
+With that regression, `mise run test` and `mise run test-minimum` both pass
+**257 tests**, with the same coverage figures above. Staged pre-commit checks
+also pass. The browser evidence remains current; this CI correction changes tests
+only, not production scheduling.
