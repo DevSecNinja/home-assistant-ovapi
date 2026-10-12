@@ -306,6 +306,13 @@ async def test_native_picker(
                 .click()
             )
             await page.locator("ha-form input").first.fill("Updated synthetic")
+            await (
+                page.get_by_role("menuitem")
+                .get_by_text(
+                    "X2: Synthetic opposite direction - (76543210)", exact=True
+                )
+                .wait_for(state="hidden")
+            )
             await page.screenshot(path=str(artifacts / "phone-reconfigure.png"))
             await page.get_by_role("button", name=submit, exact=True).click()
             await page.locator("step-flow-abort").wait_for()
