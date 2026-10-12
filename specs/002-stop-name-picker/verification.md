@@ -73,6 +73,18 @@ source-free retry form at original expiry. A separate exhausted-allowance case
 waits visibly, then continues automatically without weakening production limits.
 The HA test clock advances time; this is not a real-network latency benchmark.
 
+The same actual-browser scenario also passed on **minimum HA 2026.10.0** with
+fixture 0.13.371 in **8.79 seconds**:
+
+```sh
+UV_PROJECT_ENVIRONMENT=.venv-minimum OVAPI_UI_ARTIFACTS=.ha-e2e/evidence-minimum mise exec -- uv run --locked --no-default-groups --group minimum --group e2e pytest tests/ui/test_native_picker.py -m frontend --no-cov -q --timeout=60 --tb=short --show-capture=no
+```
+
+Minimum-runtime screenshots remain in `.ha-e2e/evidence-minimum/`; the
+[minimum-runtime phone timing-point view](evidence/phone-timing-point-minimum.png)
+is also committed. No dependency overrides or mixed incompatible fixture groups
+were used.
+
 An early browser run reproduced a genuine lost fast-progress event: HA emits it
 before the frontend subscribes. The fix retries only source-free flow-change
 notifications at 1-to-30-second intervals until continuation, abort, expiry or
