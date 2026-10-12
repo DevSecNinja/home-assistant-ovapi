@@ -213,3 +213,21 @@ With that regression, `mise run test` and `mise run test-minimum` both pass
 **257 tests**, with the same coverage figures above. Staged pre-commit checks
 also pass. The browser evidence remains current; this CI correction changes tests
 only, not production scheduling.
+
+The coordinator confirmed that all six original PR #3 review threads were replied
+to and resolved, with links to the still-unmerged follow-up PR #4.
+
+PR #4's subsequent Copilot finding `4247832934` exposed one additional invariant:
+a non-replacement add of target X could share replacement A-to-X's credit, then
+outlive A-to-X's abort. Two new regressions failed before the fix. A new target
+now receives replacement credit only if **every claimant** supplies an eligible
+unshared old point; deleting other claims therefore cannot leave an unsupported
+add. This small change also rejects shared-old-point claimants while permitting
+same-target claims when a real spare slot exists.
+
+Tests cover both reservation creation orders, actual picker expiry/abort, manual
+failure/abort while in flight, shared old points, and real spare capacity.
+`tests/test_reconfigure_capacity.py` now has **19 passing tests**; `mise run test`
+and `mise run test-minimum` both pass **265 tests**. All module statements and
+config-flow branches remain 100%; coordinator branches are 98.21%.
+The coordinator owns the new thread reply/resolution after final verification.

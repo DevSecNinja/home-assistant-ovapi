@@ -172,18 +172,18 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
         # Only one unique old point can back each new point. A shrinking edit
         # cannot lend its future free slot to another flow before it commits.
         for target in targets - counts.keys():
-            for item in reservations.values():
-                old = (
-                    entries.get(item.replacing) if item.replacing is not None else None
-                )
-                if (
-                    item.stop == target
-                    and old is not None
-                    and counts[old] == 1
-                    and old not in targets
-                ):
-                    released.add(old)
-                    break
+            backing = [
+                (entries.get(item.replacing) if item.replacing is not None else None)
+                for item in reservations.values()
+                if item.stop == target
+            ]
+            # Every claimant must carry its own replacement credit, including
+            # whichever claimant remains after the others abort.
+            if any(
+                old is None or counts[old] != 1 or old in targets for old in backing
+            ):
+                continue
+            released.update(old for old in backing[:1] if old is not None)
         prospective = (
             (set(counts) - released) | targets | (self._pending - set(entries.values()))
         )

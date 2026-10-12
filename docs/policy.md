@@ -83,7 +83,9 @@ boards, bounded by the admitted flows and their original retention deadlines.
 Abort, expiry and failed validation release reservations and discard unconfigured
 replacement boards; completing the update trims the old unshared board.
 Uncommitted changes that would reduce the stop count do not lend capacity to
-another flow. Two windows cannot reserve different replacements for one entry,
+another flow. Every claimant of a shared new target must supply its own eligible
+replacement credit; an ordinary add cannot borrow another flow's credit and
+outlive that replacement's abort, failure or expiry. Two windows cannot reserve different replacements for one entry,
 and an aborted in-flight validation cannot later commit or restore its target.
 Manual replacement validation batches at most ten points, omitting the replaced
 unshared old point from that request without discarding its cached board.
