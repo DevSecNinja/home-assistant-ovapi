@@ -8,6 +8,8 @@ USER_AGENT = (
     "(+https://github.com/DevSecNinja/home-assistant-ovapi)"
 )
 POLL_SECONDS = 120
+DISCOVERY_REQUESTS = 2
+DISCOVERY_WINDOW_SECONDS = 120
 RETENTION_SECONDS = 29 * 60
 MAX_BACKOFF_SECONDS = 60 * 60
 MAX_STOPS = 10

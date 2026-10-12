@@ -30,6 +30,10 @@ async def test_user_flow(hass, api, payload):
     result = await hass.config_entries.flow.async_init(
         "ovapi", context={"source": config_entries.SOURCE_USER}
     )
+    assert result["type"] is FlowResultType.MENU
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "manual"}
+    )
     assert result["type"] is FlowResultType.FORM
     result = await hass.config_entries.flow.async_configure(result["flow_id"], INPUT)
     await hass.async_block_till_done()
@@ -135,6 +139,10 @@ async def test_reconfigure(hass, api, payload):
             "source": config_entries.SOURCE_RECONFIGURE,
             "entry_id": entry.entry_id,
         },
+    )
+    assert result["type"] is FlowResultType.MENU
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "manual"}
     )
     assert result["type"] is FlowResultType.FORM
     result = await hass.config_entries.flow.async_configure(

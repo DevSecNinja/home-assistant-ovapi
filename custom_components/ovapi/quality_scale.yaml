@@ -5,13 +5,19 @@ rules:
     comment: No custom service actions; WebSocket command registered in async_setup.
   appropriate-polling:
     status: done
-    comment: Shared 120-second floor, batched cache and backoff; test_coordinator.py.
+    comment: 120-second board floor, shared two-request rolling interactive allowance, global backoff and fair polling slots;
+      test_coordinator.py and test_discovery_coordinator.py.
   brands:
     status: todo
     comment: Separate HA brands submission is external follow-up; no official tier claimed.
   common-modules: done
-  config-flow-test-coverage: done
-  config-flow: done
+  config-flow-test-coverage:
+    status: done
+    comment: Full statement/branch gate, public flows, real HTTP serialization on both runtimes and optional actual-browser
+      progress/cache/expiry evidence.
+  config-flow:
+    status: done
+    comment: Native town/name search, timing-point choices, automatic budget progress and explicit advanced code fallback.
   dependency-transparency:
     status: done
     comment: No new runtime dependencies; bundled isolated aiohttp client documented.
@@ -57,7 +63,7 @@ rules:
     comment: Fixed upstream endpoint; no discovery or device network configuration.
   discovery:
     status: exempt
-    comment: Explicit favourites; no discoverable local device or full-feed scrape.
+    comment: Explicit favourites with on-demand metadata search; no discoverable local device or full-network departure scrape.
   docs-data-update: done
   docs-examples: done
   docs-known-limitations: done

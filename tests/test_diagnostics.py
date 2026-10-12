@@ -14,6 +14,8 @@ async def test_diagnostics(hass, api, payload, freezer):
     assert diagnostics["request_count"] == 1
     assert diagnostics["configured_distinct_stops"] == 1
     assert diagnostics["retention_seconds"] == 1740
+    assert diagnostics["discovery_requests_per_window"] == 2
+    assert diagnostics["discovery_window_seconds"] == 120
     serialized = json.dumps(diagnostics)
     for excluded in ("01234567", "Amsterdam", "X1", "Synthetic", entry.entry_id):
         assert excluded not in serialized

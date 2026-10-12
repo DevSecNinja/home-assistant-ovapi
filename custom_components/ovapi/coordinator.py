@@ -4,8 +4,9 @@ import asyncio
 import json
 import logging
 import time
+from collections import deque
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Literal, TypedDict
 
@@ -22,6 +23,8 @@ from .const import (
     CONF_LINES,
     CONF_STOP,
     CONF_WALK,
+    DISCOVERY_REQUESTS,
+    DISCOVERY_WINDOW_SECONDS,
     DOMAIN,
     MAX_BACKOFF_SECONDS,
     MAX_DEPARTURES,
@@ -29,6 +32,7 @@ from .const import (
     POLL_SECONDS,
     RETENTION_SECONDS,
 )
+from .discovery import MAX_LOOKUPS, StopArea, TimingPoint
 
 _LOGGER = logging.getLogger(__name__)
 type Status = Literal["ready", "stale", "unavailable"]
@@ -58,6 +62,19 @@ class CachedBoard:
     expires_at: datetime
     monotonic_expiry: float
     stale: bool = False
+
+
+@dataclass(slots=True, repr=False)
+class CachedLookup:
+    fetched_at: datetime
+    expires_at: datetime
+    monotonic_expiry: float
+    areas: tuple[StopArea, ...] = ()
+    points: dict[str, TimingPoint] = field(default_factory=dict)
+
+    def clear(self) -> None:
+        self.areas = ()
+        self.points.clear()
 
 
 def normalized_lines(value: str) -> tuple[str, ...]:
@@ -91,6 +108,13 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
             if entry.disabled_by is None
         }
         self._cache: dict[str, CachedBoard] = {}
+        self._lookups: dict[str, CachedLookup] = {}
+        self._lookup_tasks: dict[str, asyncio.Task[None]] = {}
+        self._lookup_waiters: dict[str, int] = {}
+        self._request_lock = asyncio.Lock()
+        self._lookup_starts: deque[float] = deque(maxlen=DISCOVERY_REQUESTS)
+        self._lookups_since_poll = 0
+        self._backoff_until = 0.0
         self._pending: set[str] = set()
         self._inflight: asyncio.Task[dict[str, str]] | None = None
         self._expiry_cancel: Callable[[], None] | None = None
@@ -171,22 +195,25 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
     async def _fetch_batch(self) -> dict[str, str]:
         # Yield once so simultaneous startup/flow calls contribute to one batch.
         await asyncio.sleep(0)
+        if self._request_lock.locked():
+            return {}
+        async with self._request_lock:
+            return await self._perform_batch()
+
+    async def _perform_batch(self) -> dict[str, str]:
         stops = self._configured_stops() | self._pending
         if not stops or time.monotonic() < self._next_request:
             return {}
         started = time.monotonic()
         self._next_request = started + POLL_SECONDS
+        self._lookups_since_poll = 0
         self.request_count += 1
         previous_error = self._error
         errors: dict[str, str] = {}
         try:
             result = await self.client.fetch(stops)
         except ApiError as err:
-            self._failures += 1
-            self._next_request = time.monotonic() + max(
-                min(POLL_SECONDS * 2 ** min(self._failures, 5), MAX_BACKOFF_SECONDS),
-                err.retry_after,
-            )
+            self._back_off(err)
             self._error = err.code
             errors = dict.fromkeys(stops, err.code)
             for board in self._cache.values():
@@ -205,11 +232,14 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
                     if stop in self._cache:
                         self._cache[stop].stale = True
                     continue
-                self._cache[stop] = CachedBoard(
-                    departures,
-                    now,
-                    now + timedelta(seconds=RETENTION_SECONDS),
-                    time.monotonic() + RETENTION_SECONDS,
+                self._remember_board(
+                    stop,
+                    CachedBoard(
+                        departures,
+                        now,
+                        now + timedelta(seconds=RETENTION_SECONDS),
+                        time.monotonic() + RETENTION_SECONDS,
+                    ),
                 )
         if self._error is not None and previous_error is None:
             _LOGGER.warning("OVAPI refresh unavailable (%s)", self._error)
@@ -219,18 +249,163 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
         self.async_set_updated_data(self.statuses())
         return errors
 
+    def lookup(self, key: str) -> CachedLookup | None:
+        result = self._lookups.get(key)
+        if result is not None and (
+            dt_util.utcnow() >= result.expires_at
+            or time.monotonic() >= result.monotonic_expiry
+        ):
+            self._lookups.pop(key).clear()
+            return None
+        return result
+
+    def discard_lookup(self, key: str) -> None:
+        if (lookup := self._lookups.pop(key, None)) is not None:
+            lookup.clear()
+        self._schedule_expiry()
+
+    async def async_lookup(self, key: str) -> None:
+        """Share work but not task-result datasets; last cancellation stops work."""
+        if self.lookup(key) is not None:
+            return
+        if key not in self._lookup_tasks:
+            if len(self._lookup_tasks) >= MAX_LOOKUPS:
+                raise ApiError("discovery_busy")
+            self._lookup_tasks[key] = self.hass.async_create_background_task(
+                self._fetch_lookup(key), "ovapi stop lookup"
+            )
+        task = self._lookup_tasks[key]
+        self._lookup_waiters[key] = self._lookup_waiters.get(key, 0) + 1
+        try:
+            await asyncio.shield(task)
+        finally:
+            self._lookup_waiters[key] -= 1
+            if not self._lookup_waiters[key]:
+                self._lookup_waiters.pop(key)
+                self._lookup_tasks.pop(key)
+                if not task.done():
+                    task.cancel()
+
+    def _back_off(self, error: ApiError) -> None:
+        self._failures += 1
+        self._backoff_until = time.monotonic() + max(
+            min(POLL_SECONDS * 2 ** min(self._failures, 5), MAX_BACKOFF_SECONDS),
+            error.retry_after,
+        )
+        self._next_request = max(self._next_request, self._backoff_until)
+
+    def _lookup_ready_at(self) -> float:
+        now = time.monotonic()
+        while self._lookup_starts and (
+            now - self._lookup_starts[0] >= DISCOVERY_WINDOW_SECONDS
+        ):
+            self._lookup_starts.popleft()
+        ready = self._backoff_until
+        if len(self._lookup_starts) == DISCOVERY_REQUESTS:
+            ready = max(ready, self._lookup_starts[0] + DISCOVERY_WINDOW_SECONDS)
+        if self._lookups_since_poll == DISCOVERY_REQUESTS and self._configured_stops():
+            ready = max(ready, self._next_request)
+        return ready
+
+    async def _wait_for_budget(self) -> None:
+        while (remaining := self._lookup_ready_at() - time.monotonic()) > 0:
+            ready: asyncio.Future[None] = asyncio.get_running_loop().create_future()
+
+            @callback
+            def wake(_now: datetime, future: asyncio.Future[None] = ready) -> None:
+                if not future.done():
+                    future.set_result(None)
+
+            cancel = async_call_later(self.hass, remaining, wake)
+            try:
+                await ready
+            finally:
+                cancel()
+
+    async def _fetch_lookup(self, key: str) -> None:
+        async with self._request_lock:
+            await self._wait_for_budget()
+            # Only extra lookups wait for a polling slot; never split the setup pair.
+            if (
+                self._lookups_since_poll == DISCOVERY_REQUESTS
+                and self._configured_stops()
+            ):
+                await self._perform_batch()
+                await self._wait_for_budget()
+            started = time.monotonic()
+            self._lookup_starts.append(started)
+            self._lookups_since_poll = min(
+                DISCOVERY_REQUESTS, self._lookups_since_poll + 1
+            )
+            self._next_request = max(self._next_request, started + POLL_SECONDS)
+            self.request_count += 1
+            try:
+                areas = await self.client.fetch_directory() if not key else ()
+                points = await self.client.fetch_area(key) if key else {}
+            except ApiError as err:
+                self._back_off(err)
+                _LOGGER.warning("OVAPI stop lookup unavailable (%s)", err.code)
+                raise ApiError(err.code) from None
+            self._failures = 0
+            now = dt_util.utcnow()
+            if len(self._lookups) >= MAX_LOOKUPS:
+                oldest = next(iter(self._lookups))
+                self._lookups.pop(oldest).clear()
+            self._lookups[key] = CachedLookup(
+                now,
+                now + timedelta(seconds=RETENTION_SECONDS),
+                time.monotonic() + RETENTION_SECONDS,
+                areas,
+                points,
+            )
+            self._schedule_expiry()
+
+    def select_point(self, area: str, stop: str) -> None:
+        lookup = self.lookup(area)
+        if lookup is None or stop not in lookup.points:
+            raise ApiError("selection_expired")
+        if len(self._configured_stops() | self._pending | {stop}) > MAX_STOPS:
+            raise ApiError("too_many_stops")
+        existing = self._get_board(stop)
+        if existing is not None and existing.fetched_at >= lookup.fetched_at:
+            return
+        self._remember_board(
+            stop,
+            CachedBoard(
+                lookup.points[stop].departures,
+                lookup.fetched_at,
+                lookup.expires_at,
+                lookup.monotonic_expiry,
+            ),
+        )
+        self._schedule_expiry()
+
+    def _remember_board(self, stop: str, board: CachedBoard) -> None:
+        if len(self._cache) >= MAX_STOPS and stop not in self._cache:
+            unused = next(
+                key
+                for key in self._cache
+                if key not in self._configured_stops() | self._pending
+            )
+            self._cache.pop(unused)
+        self._cache[stop] = board
+
     @callback
     def _schedule_expiry(self) -> None:
         if self._expiry_cancel is not None:
             self._expiry_cancel()
             self._expiry_cancel = None
-        if self._cache:
+        cached: list[CachedBoard | CachedLookup] = [
+            *self._cache.values(),
+            *self._lookups.values(),
+        ]
+        if cached:
             seconds = min(
                 min(
                     board.monotonic_expiry - time.monotonic(),
                     (board.expires_at - dt_util.utcnow()).total_seconds(),
                 )
-                for board in self._cache.values()
+                for board in cached
             )
             self._expiry_cancel = async_call_later(
                 self.hass, max(0, seconds), self._expire
@@ -241,6 +416,8 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
         self._expiry_cancel = None
         for stop in list(self._cache):
             self._get_board(stop)
+        for key in list(self._lookups):
+            self.lookup(key)
         self.async_set_updated_data(self.statuses())
         self._schedule_expiry()
 
@@ -277,10 +454,15 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
         await super().async_shutdown()
         if self._inflight is not None:
             self._inflight.cancel()
+        for task in self._lookup_tasks.values():
+            task.cancel()
         if self._expiry_cancel is not None:
             self._expiry_cancel()
             self._expiry_cancel = None
         self._cache.clear()
+        for lookup in self._lookups.values():
+            lookup.clear()
+        self._lookups.clear()
 
 
 @callback

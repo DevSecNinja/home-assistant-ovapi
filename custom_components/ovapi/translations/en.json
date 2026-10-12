@@ -3,30 +3,72 @@
     "step": {
       "user": {
         "title": "Add an OVAPI favourite",
-        "description": "Use a timing-point code from your stop sign or operator. OVAPI uses unencrypted public HTTP. A shared conservative request budget applies; adding a new stop may require waiting two minutes. Departure data is transient and not stored in Home Assistant history. NS trains use the separate Nederlandse Spoorwegen integration.",
+        "description": "Find a stop by town and name. Then choose the stop sign or direction. OVAPI uses public, unencrypted HTTP; coverage varies. For NS trains, use the separate Nederlandse Spoorwegen integration.",
+        "menu_options": {"search": "Find a stop by name", "manual": "Enter a timing-point code (advanced)"},
         "data": {"name": "Favourite name", "stop_id": "Timing-point code", "lines": "Lines", "destination": "Destination contains", "walking_minutes": "Walking time (minutes)"},
-        "data_description": {"name": "Your label, such as Amsterdam Amstel.", "stop_id": "1-10 digits; preserve leading zeros. No stop-directory scraping is performed.", "lines": "Optional comma-separated public line numbers, matched exactly.", "destination": "Optional case-insensitive destination text.", "walking_minutes": "Used by the companion cards to calculate when to leave."}
+        "data_description": {"name": "Your label, such as Amsterdam Amstel.", "stop_id": "1-10 digits; preserve leading zeros.", "lines": "Optional comma-separated public line numbers, matched exactly.", "destination": "Optional case-insensitive destination text.", "walking_minutes": "Used by the companion cards to calculate when to leave."}
       },
       "reconfigure": {
         "title": "Change the favourite",
         "description": "Change the stop, label or filters. Connection validation shares the global request budget.",
+        "menu_options": {"search": "Find a different stop by name", "manual": "Edit the name or timing-point code (advanced)"},
         "data": {"name": "Favourite name", "stop_id": "Timing-point code", "lines": "Lines", "destination": "Destination contains", "walking_minutes": "Walking time (minutes)"},
         "data_description": {"name": "Your label for this favourite.", "stop_id": "1-10 digits, including leading zeros.", "lines": "Optional comma-separated public line numbers.", "destination": "Optional case-insensitive destination text.", "walking_minutes": "Walking time for local leave countdowns."}
+      },
+      "manual": {
+        "title": "Enter a timing-point code",
+        "description": "Advanced fallback for a known code. Leading zeros matter. Validation shares the polling budget; after another request, wait at least two minutes before retrying.",
+        "data": {"name": "Favourite name", "stop_id": "Timing-point code", "lines": "Lines", "destination": "Destination contains", "walking_minutes": "Walking time (minutes)"}
+      },
+      "directory": {"title": "Loading stop names"},
+      "details": {"title": "Loading stop directions"},
+      "search": {
+        "title": "Find a stop",
+        "description": "Enter a town and part of the stop name, for example Amsterdam Amstel. Search uses a temporary local directory, not a request for each keystroke.",
+        "data": {"query": "Town or stop name", "manual": "Use a timing-point code instead (advanced)"},
+        "submit": "Search"
+      },
+      "area": {
+        "title": "Choose a stop",
+        "description": "Choose the town and stop name. Next, available stop signs or directions will load. Codes distinguish identical names.",
+        "data": {"area": "Stop", "search_again": "Change the search"},
+        "submit": "Continue"
+      },
+      "point": {
+        "title": "Choose your stop sign",
+        "description": "Choose a timing point using the names, lines and destinations supplied by OVAPI. These are examples of current information, not all services. Without current departure information, the direction and transport mode may be unknown. No departures does not mean no service.",
+        "data": {"name": "Favourite name", "stop_id": "Stop sign or direction", "lines": "Lines", "destination": "Destination contains", "walking_minutes": "Walking time (minutes)"},
+        "data_description": {"name": "Your own label for this favourite.", "stop_id": "Codes distinguish stop signs where source descriptions are missing.", "lines": "Optional comma-separated public line numbers.", "destination": "Optional case-insensitive destination text.", "walking_minutes": "Used by the companion cards to calculate when to leave."}
+      },
+      "retry": {
+        "title": "Stop lookup needs attention",
+        "description": "Retry waits automatically for the shared request budget. You can also search again or enter a known code.",
+        "data": {"action": "Next step"}
       }
     },
+    "progress": {"lookup": "Loading from OVAPI. Normal setup has no timed wait. All setup windows share two lookup requests per two minutes; extra lookups may need to wait. Server errors can require a longer pause. This continues automatically; close to cancel."},
     "error": {
+      "short_query": "Enter at least two characters, or choose advanced code entry.",
       "invalid_name": "Enter a nonblank favourite name.",
       "invalid_walk": "Enter a whole number of walking minutes from 0 to 120.",
       "cannot_connect": "Cannot reach OVAPI. The integration will back off; try again later.",
       "unknown_stop": "OVAPI did not return this stop. Check its timing-point code.",
       "invalid_stop": "Enter a timing-point code containing 1-10 digits.",
       "invalid_data": "OVAPI returned invalid or ambiguous data. Try again later.",
-      "response_too_large": "OVAPI returned too much data. Reduce the number of stops.",
+      "response_too_large": "OVAPI returned more data than the safety limit allows. Retry later or use a known code; do not repeatedly reload.",
+      "unknown_area": "OVAPI did not return this stop area. Search again or use a known code.",
+      "invalid_area": "This stop-area identifier is invalid. Search again.",
+      "no_matches": "No matching stop metadata was found. Try a town or shorter name. This is not evidence that there are no services.",
+      "too_many_matches": "Too many stops match. Add a town or more of the stop name.",
+      "no_points": "No usable timing points were returned for this area. Retry later, search again or use a known code. This does not mean there are no services.",
+      "selection_expired": "The temporary stop information expired. Retry to load fresh choices.",
+      "discovery_busy": "Too many stop lookups are open. Close another setup window and retry.",
       "rate_limited": "The shared request budget is cooling down or OVAPI requested a pause. Wait at least two minutes before retrying.",
       "too_many_stops": "At most ten distinct timing points are supported per Home Assistant instance."
     },
-    "abort": {"already_configured": "This stop and filter combination is already configured.", "reconfigure_successful": "The favourite was updated."}
+    "abort": {"already_configured": "This stop and filter combination is already configured.", "reconfigure_successful": "The favourite was updated.", "discovery_busy": "Too many stop lookups are open. Close another setup window and try again."}
   },
+  "selector": {"recovery": {"options": {"retry": "Retry lookup", "search": "Search for another stop", "manual": "Enter a timing-point code (advanced)"}}},
   "options": {
     "step": {
       "init": {
