@@ -213,18 +213,26 @@ async def test_concurrent_manual_replacements_batch_at_capacity(hass, api, freez
         f"http://v0.ovapi.nl/tpc/{','.join(codes)}/departures",
         json={code: {"Passes": {}} for code in codes},
     )
+    flows = []
+    for entry in (first, second):
+        result = await hass.config_entries.flow.async_init(
+            "ovapi",
+            context={
+                "source": config_entries.SOURCE_RECONFIGURE,
+                "entry_id": entry.entry_id,
+            },
+        )
+        await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "manual"}
+        )
+        flows.append(result["flow_id"])
     freezer.tick(120)
     results = await asyncio.gather(
         *(
-            hass.config_entries.flow.async_init(
-                "ovapi",
-                context={
-                    "source": config_entries.SOURCE_RECONFIGURE,
-                    "entry_id": entry.entry_id,
-                },
-                data={"name": "Replacement", "stop_id": target},
+            hass.config_entries.flow.async_configure(
+                flow_id, {"name": "Replacement", "stop_id": target}
             )
-            for entry, target in zip((first, second), targets, strict=True)
+            for flow_id, target in zip(flows, targets, strict=True)
         )
     )
     await hass.async_block_till_done()
