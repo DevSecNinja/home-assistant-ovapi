@@ -8,8 +8,9 @@ rules:
     comment: 120-second board floor, shared two-request rolling interactive allowance, global backoff and fair polling slots;
       test_coordinator.py and test_discovery_coordinator.py.
   brands:
-    status: todo
-    comment: Separate HA brands submission is external follow-up; no official tier claimed.
+    status: done
+    comment: Original local light/dark PNG assets, validated package and authenticated HA brands API; no external brands submission
+      needed on supported HA versions.
   common-modules: done
   config-flow-test-coverage:
     status: done

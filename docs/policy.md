@@ -30,8 +30,8 @@ and public departures. Treat results as travel information, not a safety guarant
 
 One per-HA-instance coordinator owns all upstream access:
 
-- Ordinary board batches (including advanced manual validation) have at least
-  120 seconds between starts. Interactive directory/detail discovery has a separate
+- Ordinary board batches, including startup/reload retries, have at least
+  120 seconds between starts. Interactive manual validation and directory/detail discovery share a separate
   **two-request rolling 120-second allowance**, shared by all setup/reconfigure
   flows in this instance. The healthy first pair has no deliberate cooldown even
   immediately after an ordinary poll. These are bounded engineering choices,
@@ -46,6 +46,14 @@ One per-HA-instance coordinator owns all upstream access:
   eligible board-polling slot before proceeding; the initial pair is never split
   by a mandatory poll. There are at most two discovery starts plus one ordinary
   batch start in any rolling 120-second window.
+- Manual validation contributes pending targets to a bounded shared timing-point
+  batch, including existing configured stops. A caller arriving after dispatch
+  joins the next eligible batch rather than receiving a false local error.
+  A fair ordinary batch can satisfy pending manual checks without an additional
+  interactive request. Cache hits and local mode/line/destination edits do not fetch.
+  Native progress preserves input and names the actual shared deadline. A source
+  error returns a preserved form; only explicit resubmission attempts it again,
+  after automatic waiting. Cancellation stops work once no waiters need it.
 - `Accept-Encoding: gzip`, identifying project/version user-agent, 20-second
   timeout, 2 MiB detail/board and 16 MiB directory caps, applied to both received
   and incrementally decompressed bytes. Automatic unbounded decompression is off.
@@ -57,6 +65,17 @@ One per-HA-instance coordinator owns all upstream access:
 - Both budgets and shared backoff survive flow restart, cache eviction and entry
   reloads, but not a complete HA process restart, and are not
   shared between separate HA installations or other applications on the same IP.
+
+Replacement capacity is prospective but not transferable. Every concurrent
+claimant of a new target must independently supply an eligible unshared old
+point when using replacement credit. An ordinary same-target add cannot borrow
+another flow's slot and outlive its cancellation.
+
+Whole-station discovery remains deferred to
+[#5](https://github.com/DevSecNinja/home-assistant-ovapi/issues/5). Bounded GTFS,
+CHB and OSM research did not establish a reusable current station-to-TPC mapping
+covering orphan metro points. No extra runtime metadata provider, persistent
+static cache, full-network scrape or guessed identifier was added.
 
 ## Retention boundary
 

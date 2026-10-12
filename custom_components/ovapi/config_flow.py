@@ -18,12 +18,16 @@ from homeassistant.util import dt as dt_util
 
 from .client import ApiError, valid_stop
 from .const import (
+    CARD_DOCS_URL,
+    CARD_INSTALL_URL,
     CONF_DESTINATION,
     CONF_LINES,
     CONF_STOP,
+    CONF_TRANSPORTS,
     CONF_WALK,
     DOMAIN,
     RETENTION_SECONDS,
+    SUPPORTED_TRANSPORTS,
 )
 from .coordinator import CachedLookup, get_coordinator, identity
 from .discovery import MAX_LOOKUPS, MAX_SEARCH_RESULTS, TimingPoint, search_areas
@@ -42,6 +46,17 @@ def schema(defaults: dict[str, Any], *, options: bool = False) -> vol.Schema:
         }
     fields.update(
         {
+            vol.Optional(
+                CONF_TRANSPORTS,
+                default=defaults.get(CONF_TRANSPORTS, list(SUPPORTED_TRANSPORTS)),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=list(SUPPORTED_TRANSPORTS),
+                    multiple=True,
+                    translation_key="transport",
+                    mode=selector.SelectSelectorMode.LIST,
+                )
+            ),
             vol.Optional(CONF_LINES, default=defaults.get(CONF_LINES, "")): vol.All(
                 cv.string, vol.Length(max=160)
             ),
@@ -67,6 +82,9 @@ def split_input(user_input: dict[str, Any]) -> tuple[dict[str, str], dict[str, A
             CONF_STOP: user_input[CONF_STOP].strip(),
         },
         {
+            CONF_TRANSPORTS: sorted(
+                set(user_input.get(CONF_TRANSPORTS, SUPPORTED_TRANSPORTS))
+            ),
             CONF_LINES: user_input.get(CONF_LINES, "").strip(),
             CONF_DESTINATION: user_input.get(CONF_DESTINATION, "").strip(),
             CONF_WALK: int(user_input.get(CONF_WALK, 0)),
@@ -80,6 +98,16 @@ def valid_walk(value: Any) -> bool:
         and not isinstance(value, bool)
         and 0 <= value <= 120
         and value == int(value)
+    )
+
+
+def valid_transports(value: Any) -> bool:
+    return (
+        isinstance(value, list)
+        and bool(value)
+        and all(
+            isinstance(mode, str) and mode in SUPPORTED_TRANSPORTS for mode in value
+        )
     )
 
 
@@ -99,6 +127,8 @@ class OvapiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._notify_cancel: Callable[[], None] | None = None
         self._notify_until = 0.0
         self._notify_delay = 1.0
+        self._manual_input: dict[str, Any] | None = None
+        self._manual_step = "manual"
 
     @staticmethod
     @callback
@@ -134,7 +164,21 @@ class OvapiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _load(self) -> None:
         try:
-            await get_coordinator(self.hass).async_lookup(self._key)
+            coordinator = get_coordinator(self.hass)
+            if self._manual_input is not None:
+                current = (
+                    self._get_reconfigure_entry()
+                    if self.source == config_entries.SOURCE_RECONFIGURE
+                    else None
+                )
+                await coordinator.async_validate(
+                    self._manual_input[CONF_STOP].strip(),
+                    reservation_id=self.flow_id,
+                    replacing=current.entry_id if current else None,
+                    interactive=True,
+                )
+            else:
+                await coordinator.async_lookup(self._key)
         except ApiError as err:
             self._lookup_error = err.code
 
@@ -147,17 +191,34 @@ class OvapiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         elif self._lookup_task.done():
             self._lookup_task = None
             lookup = get_coordinator(self.hass).lookup(self._key)
-            if lookup is not None and not self._expired:
+            if lookup is not None and not self._expired and step != "validate":
                 self._arm_expiry(lookup)
             self._notify_until = time.monotonic() + RETENTION_SECONDS
             self._notify_delay = 1.0
             self._schedule_progress_notification()
             return self.async_show_progress_done(next_step_id=next_step)
+        action, resume_at = get_coordinator(self.hass).lookup_wait()
         return self.async_show_progress(
             step_id=step,
-            progress_action="lookup",
+            progress_action=action,
+            description_placeholders={
+                "resume_at": dt_util.as_local(resume_at).strftime("%Y-%m-%d %H:%M:%S")
+            },
             progress_task=self._lookup_task,
         )
+
+    async def async_step_validate(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        return await self._progress("validate", "validated")
+
+    async def async_step_validated(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        self._ack_progress()
+        entered = self._manual_input
+        self._manual_input = None
+        return await self._step(self._manual_step, entered, validated=True)
 
     async def async_step_directory(
         self, user_input: dict[str, Any] | None = None
@@ -377,13 +438,18 @@ class OvapiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_remove(self) -> None:
         self._clear_choices()
+        if self._lookup_task is not None and not self._lookup_task.done():
+            self._lookup_task.cancel()
         self._lookup_task = None
+        self._manual_input = None
 
     async def _step(
         self,
         step: str,
         user_input: dict[str, Any] | None,
         points: dict[str, TimingPoint] | None = None,
+        *,
+        validated: bool = False,
     ) -> ConfigFlowResult:
         current = (
             self._get_reconfigure_entry()
@@ -399,6 +465,10 @@ class OvapiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors[CONF_NAME] = "invalid_name"
             elif not valid_walk(user_input.get(CONF_WALK, 0)):
                 errors[CONF_WALK] = "invalid_walk"
+            elif not valid_transports(
+                user_input.get(CONF_TRANSPORTS, list(SUPPORTED_TRANSPORTS))
+            ):
+                errors[CONF_TRANSPORTS] = "invalid_transport"
             elif not valid_stop(user_input[CONF_STOP].strip()):
                 errors[CONF_STOP] = "invalid_stop"
             else:
@@ -411,11 +481,18 @@ class OvapiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 try:
                     if points is None:
                         self._reserved = True
-                        await get_coordinator(self.hass).async_validate(
+                        coordinator = get_coordinator(self.hass)
+                        if validated and self._lookup_error is not None:
+                            raise ApiError(self._lookup_error)
+                        coordinator.reserve_stop(
+                            self.flow_id,
                             data[CONF_STOP],
-                            reservation_id=self.flow_id,
-                            replacing=current.entry_id if current else None,
+                            current.entry_id if current else None,
                         )
+                        if coordinator.status(data[CONF_STOP]) == "unavailable":
+                            self._manual_input = dict(user_input)
+                            self._manual_step = step
+                            return await self.async_step_validate()
                 except ApiError as err:
                     errors["base"] = err.code
                 else:
@@ -427,7 +504,14 @@ class OvapiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             current, data=data, options=options
                         )
                     return self.async_create_entry(
-                        title=data[CONF_NAME], data=data, options=options
+                        title=data[CONF_NAME],
+                        data=data,
+                        options=options,
+                        description="default",
+                        description_placeholders={
+                            "card_install_url": CARD_INSTALL_URL,
+                            "card_docs_url": CARD_DOCS_URL,
+                        },
                     )
             defaults = user_input
         form_schema = schema(defaults)
@@ -447,7 +531,23 @@ class OvapiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {vol.Required(CONF_STOP): point_selector, **fields}
             )
         return self.async_show_form(
-            step_id=step, data_schema=form_schema, errors=errors
+            step_id=step,
+            data_schema=form_schema,
+            errors=errors,
+            description_placeholders={
+                "observed_modes": ", ".join(
+                    sorted(
+                        {
+                            departure.transport
+                            for point in points.values()
+                            for departure in point.departures
+                        }
+                    )
+                )
+                or "-"
+                if points is not None
+                else "-",
+            },
         )
 
 
@@ -457,14 +557,22 @@ class OvapiOptionsFlow(config_entries.OptionsFlow):
     ) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
-            if not valid_walk(user_input.get(CONF_WALK, 0)):
-                return self.async_show_form(
-                    step_id="init",
-                    data_schema=schema(dict(self.config_entry.options), options=True),
-                    errors={CONF_WALK: "invalid_walk"},
+            if not valid_walk(user_input.get(CONF_WALK, 0)) or not valid_transports(
+                user_input.get(CONF_TRANSPORTS, list(SUPPORTED_TRANSPORTS))
+            ):
+                return self._form(
+                    (
+                        {CONF_WALK: "invalid_walk"}
+                        if not valid_walk(user_input.get(CONF_WALK, 0))
+                        else {CONF_TRANSPORTS: "invalid_transport"}
+                    ),
+                    user_input,
                 )
             entry = self.config_entry
             options = {
+                CONF_TRANSPORTS: sorted(
+                    set(user_input.get(CONF_TRANSPORTS, SUPPORTED_TRANSPORTS))
+                ),
                 CONF_LINES: user_input.get(CONF_LINES, "").strip(),
                 CONF_DESTINATION: user_input.get(CONF_DESTINATION, "").strip(),
                 CONF_WALK: int(user_input.get(CONF_WALK, 0)),
@@ -478,8 +586,23 @@ class OvapiOptionsFlow(config_entries.OptionsFlow):
             else:
                 self.hass.config_entries.async_update_entry(entry, unique_id=unique_id)
                 return self.async_create_entry(data=options)
+        return self._form(errors, user_input)
+
+    def _form(
+        self, errors: dict[str, str], defaults: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         return self.async_show_form(
             step_id="init",
-            data_schema=schema(dict(self.config_entry.options), options=True),
+            data_schema=schema(
+                {**self.config_entry.options, **(defaults or {})}, options=True
+            ),
             errors=errors,
+            description_placeholders={
+                "observed_modes": ", ".join(
+                    get_coordinator(self.hass).observed_transports(
+                        self.config_entry.data[CONF_STOP]
+                    )
+                )
+                or "-",
+            },
         )

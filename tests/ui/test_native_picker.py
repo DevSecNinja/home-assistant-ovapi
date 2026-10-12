@@ -7,6 +7,7 @@ import os
 import time
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pytest
 from aiohttp.web_log import AccessLogger
@@ -36,6 +37,13 @@ LABELS = {
         "retry": "Stop lookup needs attention",
         "details": "Loading stop directions",
         "reconfigure": "Change the favourite",
+        "manual": "Enter a timing-point code (advanced)",
+        "validate": "Checking your stop",
+        "budget": "Waiting for the shared lookup allowance",
+        "pause": "OVAPI requested a pause or a recent request failed.",
+        "rate_limited": "OVAPI requested a pause. Submit again",
+        "cards": "Install the OVAPI companion cards in HACS",
+        "empty_modes": "Select at least one transport type",
     },
     "nl": {
         "find": "Halte zoeken op naam",
@@ -50,6 +58,13 @@ LABELS = {
         "retry": "Halte zoeken vraagt aandacht",
         "details": "Halterichtingen laden",
         "reconfigure": "Favoriet wijzigen",
+        "manual": "Haltecode invoeren (geavanceerd)",
+        "validate": "Je halte controleren",
+        "budget": "Wachten op het gedeelde zoekbudget",
+        "pause": "OVAPI vroeg om een pauze of een recente aanvraag mislukte.",
+        "rate_limited": "OVAPI vroeg om een pauze. Verstuur opnieuw",
+        "cards": "Installeer de OVAPI-kaarten in HACS",
+        "empty_modes": "Kies minstens een vervoermiddel",
     },
 }
 
@@ -77,6 +92,8 @@ async def test_native_picker(
         "key": "onboarding",
         "data": {"done": ["user", "core_config", "integration", "analytics"]},
     }
+    # Normal HA bootstrap starts brands separately from frontend dependencies.
+    assert await async_setup_component(hass, "brands", {})
     assert await async_setup_component(hass, "frontend", {})
     assert await async_setup_component(hass, "ovapi", {})
     client = await hass_client()
@@ -134,6 +151,13 @@ async def test_native_picker(
             ),
         )
         page = await context.new_page()
+        brand_responses = {}
+
+        def observe_brand(response):
+            if response.url.startswith(url + "/api/brands/integration/ovapi/"):
+                brand_responses[urlsplit(response.url).path] = response.status
+
+        page.on("response", observe_brand)
 
         async def localized(key):
             await page.wait_for_function(
@@ -252,6 +276,27 @@ async def test_native_picker(
             submit = await localized("ui.panel.config.integrations.config_flow.submit")
             await page.get_by_role("button", name=submit, exact=True).click()
             await page.locator("step-flow-create-entry").wait_for()
+            handoff = page.get_by_role("link", name=labels["cards"], exact=True)
+            await handoff.wait_for()
+            assert (
+                "repository=lovelace-ovapi&category=plugin"
+                in await handoff.get_attribute("href")
+            )
+            icon = page.locator("step-flow-create-entry img[alt='OVAPI']")
+            await icon.wait_for()
+            image_url = await icon.get_attribute("src")
+            assert image_url is not None
+            image_path = urlsplit(image_url).path
+            assert image_path.startswith("/api/brands/integration/ovapi/")
+            assert (
+                await icon.evaluate(
+                    "async (image) => { await image.decode();"
+                    " return image.naturalWidth; }"
+                )
+                > 0
+            )
+            assert brand_responses[image_path] == 200
+            await page.screenshot(path=str(artifacts / "phone-card-handoff.png"))
             await page.get_by_role(
                 "button",
                 name=await localized(
@@ -392,6 +437,113 @@ async def test_native_picker(
             await tick(hass, freezer, 120)
             await page.get_by_text(labels["point"], exact=True).wait_for()
             assert api.call_count == before + 2
+
+            # Manual setup shares that same allowance and native continuation.
+            api.get(
+                "http://v0.ovapi.nl/stopareacode/BusyC/departures", json={"BusyC": {}}
+            )
+            await coordinator.async_lookup("BusyC")
+            attempts = 0
+
+            async def manual_response(method, request_url, data):
+                from pytest_homeassistant_custom_component.test_util.aiohttp import (
+                    AiohttpClientMockResponse,
+                )
+
+                nonlocal attempts
+                attempts += 1
+                if attempts == 1:
+                    return AiohttpClientMockResponse(
+                        method, request_url, status=429, headers={"Retry-After": "600"}
+                    )
+                return AiohttpClientMockResponse(
+                    method,
+                    request_url,
+                    json={"76543210": target_board, "00999999": {"Passes": {}}},
+                )
+
+            api.get(
+                "http://v0.ovapi.nl/tpc/00999999,76543210/departures",
+                side_effect=manual_response,
+            )
+            progress_subscribed.clear()
+            await page.goto(url + "/config/integrations/dashboard")
+            await page.get_by_role(
+                "button",
+                name=await localized("ui.panel.config.integrations.add_integration"),
+                exact=True,
+            ).last.click()
+            await page.locator("dialog-add-integration input").fill("OVAPI")
+            await (
+                page.locator("dialog-add-integration")
+                .get_by_text("OVAPI", exact=True)
+                .click()
+            )
+            await page.get_by_text(labels["manual"], exact=True).click()
+            await page.locator("ha-form-string input").nth(0).fill("Synthetic metro")
+            await page.locator("ha-form-string input").nth(1).fill("00999999")
+            for mode in ("Bus", "Tram"):
+                checkbox = page.get_by_role("checkbox", name=mode, exact=True)
+                assert await checkbox.is_checked()
+                await checkbox.press("Space")
+                assert not await checkbox.is_checked()
+            assert await page.get_by_role(
+                "checkbox", name="Metro", exact=True
+            ).is_checked()
+            await page.locator("ha-selector-number input").fill("7")
+            before = api.call_count
+            metro = page.get_by_role("checkbox", name="Metro", exact=True)
+            await page.get_by_text("Metro", exact=True).click()
+            assert not await metro.is_checked()
+            await page.get_by_role("button", name=submit, exact=True).click()
+            await page.get_by_text(labels["empty_modes"], exact=False).wait_for()
+            assert not await metro.is_checked()
+            assert api.call_count == before
+            await page.get_by_text("Metro", exact=True).click()
+            assert await metro.is_checked()
+            await page.get_by_role("button", name=submit, exact=True).click()
+            await page.get_by_text(labels["validate"], exact=True).wait_for()
+            await page.get_by_text(labels["budget"], exact=False).wait_for()
+            await asyncio.wait_for(progress_subscribed.wait(), timeout=5)
+            await page.screenshot(path=str(artifacts / "phone-manual-budget.png"))
+            await tick(hass, freezer, 119)
+            assert api.call_count == before
+            await tick(hass, freezer, 1)
+            await tick(hass, freezer, 1)
+            await page.get_by_text(labels["rate_limited"], exact=False).wait_for()
+            assert (
+                await page.locator("ha-form-string input").nth(0).input_value()
+                == "Synthetic metro"
+            )
+            assert (
+                await page.locator("ha-form-string input").nth(1).input_value()
+                == "00999999"
+            )
+            assert await page.locator("ha-selector-number input").input_value() == "7"
+            assert api.call_count == before + 1
+            await page.get_by_role("button", name=submit, exact=True).click()
+            await page.get_by_text(labels["pause"], exact=False).wait_for()
+            await page.screenshot(path=str(artifacts / "phone-manual-server-pause.png"))
+            await tick(hass, freezer, 598)
+            assert api.call_count == before + 1
+            await tick(hass, freezer, 1)
+            await tick(hass, freezer, 1)
+            await page.locator("step-flow-create-entry").wait_for()
+            assert attempts == 2
+            assert api.call_count == before + 2
+            manual_entry = next(
+                item
+                for item in hass.config_entries.async_entries("ovapi")
+                if item.data["stop_id"] == "00999999"
+            )
+            assert manual_entry.options["transport_types"] == ["metro"]
+            assert manual_entry.options["walking_minutes"] == 7
+            assert (
+                er.async_get(hass).async_get_entity_id(
+                    "sensor", "ovapi", manual_entry.entry_id
+                )
+                == "sensor.synthetic_metro_departure_board"
+            )
         except BaseException:
             await page.screenshot(path=str(artifacts / "failure.png"))
             raise

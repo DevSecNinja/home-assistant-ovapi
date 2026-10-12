@@ -4,49 +4,128 @@
       "user": {
         "title": "Add an OVAPI favourite",
         "description": "Find a stop by town and name. Then choose the stop sign or direction. OVAPI uses public, unencrypted HTTP; coverage varies. For NS trains, use the separate Nederlandse Spoorwegen integration.",
-        "menu_options": {"search": "Find a stop by name", "manual": "Enter a timing-point code (advanced)"},
-        "data": {"name": "Favourite name", "stop_id": "Timing-point code", "lines": "Lines", "destination": "Destination contains", "walking_minutes": "Walking time (minutes)"},
-        "data_description": {"name": "Your label, such as Amsterdam Amstel.", "stop_id": "1-10 digits; preserve leading zeros.", "lines": "Optional comma-separated public line numbers, matched exactly.", "destination": "Optional case-insensitive destination text.", "walking_minutes": "Used by the companion cards to calculate when to leave."}
+        "menu_options": {
+          "search": "Find a stop by name",
+          "manual": "Enter a timing-point code (advanced)"
+        },
+        "data": {
+          "name": "Favourite name",
+          "stop_id": "Timing-point code",
+          "lines": "Only these line numbers (optional)",
+          "destination": "Destination contains (optional)",
+          "walking_minutes": "Walking time (minutes)",
+          "transport_types": "Transport to include"
+        },
+        "data_description": {
+          "name": "Your label, such as Amsterdam Amstel.",
+          "stop_id": "1-10 digits; preserve leading zeros.",
+          "lines": "Blank = all lines. Exact public numbers separated by commas, for example 50, 51. Do not add an M unless OVAPI reports it.",
+          "destination": "Blank = all destinations. One text fragment, for example Centraal; not a comma-separated list.",
+          "walking_minutes": "Used by the companion cards to calculate when to leave.",
+          "transport_types": "All selected by default, including future services. Select at least one transport type. This does not imply every mode serves this stop."
+        }
       },
       "reconfigure": {
         "title": "Change the favourite",
         "description": "Change the stop, label or filters. Connection validation shares the global request budget.",
-        "menu_options": {"search": "Find a different stop by name", "manual": "Edit the name or timing-point code (advanced)"},
-        "data": {"name": "Favourite name", "stop_id": "Timing-point code", "lines": "Lines", "destination": "Destination contains", "walking_minutes": "Walking time (minutes)"},
-        "data_description": {"name": "Your label for this favourite.", "stop_id": "1-10 digits, including leading zeros.", "lines": "Optional comma-separated public line numbers.", "destination": "Optional case-insensitive destination text.", "walking_minutes": "Walking time for local leave countdowns."}
+        "menu_options": {
+          "search": "Find a different stop by name",
+          "manual": "Edit the name or timing-point code (advanced)"
+        },
+        "data": {
+          "name": "Favourite name",
+          "stop_id": "Timing-point code",
+          "lines": "Only these line numbers (optional)",
+          "destination": "Destination contains (optional)",
+          "walking_minutes": "Walking time (minutes)",
+          "transport_types": "Transport to include"
+        },
+        "data_description": {
+          "name": "Your label for this favourite.",
+          "stop_id": "1-10 digits, including leading zeros.",
+          "lines": "Blank = all lines. Exact public numbers separated by commas, for example 50, 51. Do not add an M unless OVAPI reports it.",
+          "destination": "Blank = all destinations. One text fragment, for example Centraal; not a comma-separated list.",
+          "walking_minutes": "Walking time for local leave countdowns.",
+          "transport_types": "All selected by default, including future services. Select at least one transport type. This does not imply every mode serves this stop."
+        }
       },
       "manual": {
         "title": "Enter a timing-point code",
-        "description": "Advanced fallback for a known code. Leading zeros matter. Validation shares the polling budget; after another request, wait at least two minutes before retrying.",
-        "data": {"name": "Favourite name", "stop_id": "Timing-point code", "lines": "Lines", "destination": "Destination contains", "walking_minutes": "Walking time (minutes)"}
+        "description": "Use a known OVAPI code for one stop sign or platform. Leading zeros matter. Extra lookups wait automatically; your entries are kept. Leave line and destination filters blank to follow changing services.",
+        "data": {
+          "name": "Favourite name",
+          "stop_id": "Timing-point code",
+          "lines": "Only these line numbers (optional)",
+          "destination": "Destination contains (optional)",
+          "walking_minutes": "Walking time (minutes)",
+          "transport_types": "Transport to include"
+        },
+        "data_description": {
+          "transport_types": "All selected by default, including future services. Select at least one transport type. This does not imply every mode serves this stop.",
+          "lines": "Blank = all lines. Exact public numbers separated by commas, for example 50, 51. Do not add an M unless OVAPI reports it.",
+          "destination": "Blank = all destinations. One text fragment, for example Centraal; not a comma-separated list."
+        }
       },
-      "directory": {"title": "Loading stop names"},
-      "details": {"title": "Loading stop directions"},
+      "directory": {
+        "title": "Loading stop names"
+      },
+      "details": {
+        "title": "Loading stop directions"
+      },
       "search": {
         "title": "Find a stop",
         "description": "Enter a town and part of the stop name, for example Amsterdam Amstel. Search uses a temporary local directory, not a request for each keystroke.",
-        "data": {"query": "Town or stop name", "manual": "Use a timing-point code instead (advanced)"},
+        "data": {
+          "query": "Town or stop name",
+          "manual": "Use a timing-point code instead (advanced)"
+        },
         "submit": "Search"
       },
       "area": {
         "title": "Choose a stop",
         "description": "Choose the town and stop name. Next, available stop signs or directions will load. Codes distinguish identical names.",
-        "data": {"area": "Stop", "search_again": "Change the search"},
+        "data": {
+          "area": "Stop",
+          "search_again": "Change the search"
+        },
         "submit": "Continue"
       },
       "point": {
         "title": "Choose your stop sign",
-        "description": "Choose a timing point using the names, lines and destinations supplied by OVAPI. These are examples of current information, not all services. Without current departure information, the direction and transport mode may be unknown. An empty departure list does not mean that no services operate.",
-        "data": {"name": "Favourite name", "stop_id": "Stop sign or direction", "lines": "Lines", "destination": "Destination contains", "walking_minutes": "Walking time (minutes)"},
-        "data_description": {"name": "Your own label for this favourite.", "stop_id": "Codes distinguish stop signs where source descriptions are missing.", "lines": "Optional comma-separated public line numbers.", "destination": "Optional case-insensitive destination text.", "walking_minutes": "Used by the companion cards to calculate when to leave."}
+        "description": "Choose one stop sign or direction. Currently reported in these choices: {observed_modes}. A dash means no current mode information, not no service. Names, lines and destinations are current examples, not complete coverage. An empty departure list does not mean that no services operate.",
+        "data": {
+          "name": "Favourite name",
+          "stop_id": "Stop sign or direction",
+          "lines": "Only these line numbers (optional)",
+          "destination": "Destination contains (optional)",
+          "walking_minutes": "Walking time (minutes)",
+          "transport_types": "Transport to include"
+        },
+        "data_description": {
+          "name": "Your own label for this favourite.",
+          "stop_id": "Codes distinguish stop signs where source descriptions are missing.",
+          "lines": "Blank = all lines. Exact public numbers separated by commas, for example 50, 51. Do not add an M unless OVAPI reports it.",
+          "destination": "Blank = all destinations. One text fragment, for example Centraal; not a comma-separated list.",
+          "walking_minutes": "Used by the companion cards to calculate when to leave.",
+          "transport_types": "All selected by default, including future services. Select at least one transport type. This does not imply every mode serves this stop."
+        }
       },
       "retry": {
         "title": "Stop lookup needs attention",
         "description": "Retry waits automatically for the shared request budget. You can also search again or enter a known code.",
-        "data": {"action": "Next step"}
+        "data": {
+          "action": "Next step"
+        }
+      },
+      "validate": {
+        "title": "Checking your stop"
       }
     },
-    "progress": {"lookup": "Loading from OVAPI. Normal setup has no timed wait. All setup windows share two lookup requests per two minutes; extra lookups may need to wait. Server errors can require a longer pause. This continues automatically; close to cancel."},
+    "progress": {
+      "lookup": "Checking OVAPI. This continues automatically and keeps your entries; close to cancel.",
+      "budget_wait": "Waiting for the shared lookup allowance, until at least {resume_at} (Home Assistant time). This is not a limit on the number of favourites. Your entries are kept and setup continues automatically; close to cancel.",
+      "server_pause": "OVAPI requested a pause or a recent request failed. The next eligible check is at {resume_at} (Home Assistant time), possibly later if another request fails. Your entries are kept; this continues automatically. Close to cancel."
+    },
     "error": {
       "reconfigure_in_progress": "Another setup window is changing this favourite. Finish there or close it before trying again.",
       "short_query": "Enter at least two characters, or choose advanced code entry.",
@@ -64,35 +143,92 @@
       "no_points": "No usable timing points were returned for this area. Retry later, search again or use a known code. This does not mean there are no services.",
       "selection_expired": "The temporary stop information expired. Retry to load fresh choices.",
       "discovery_busy": "Too many stop lookups are open. Close another setup window and retry.",
-      "rate_limited": "The shared request budget is cooling down or OVAPI requested a pause. Wait at least two minutes before retrying.",
-      "too_many_stops": "At most ten distinct timing points are supported per Home Assistant instance."
+      "rate_limited": "OVAPI requested a pause. Submit again to wait automatically until the shared deadline; your entries are kept.",
+      "too_many_stops": "At most ten distinct timing points are supported per Home Assistant instance.",
+      "invalid_transport": "Select at least one transport type: bus, tram or metro."
     },
-    "abort": {"already_configured": "This stop and filter combination is already configured.", "reconfigure_successful": "The favourite was updated.", "discovery_busy": "Too many stop lookups are open. Close another setup window and try again."}
+    "abort": {
+      "already_configured": "This stop and filter combination is already configured.",
+      "reconfigure_successful": "The favourite was updated.",
+      "discovery_busy": "Too many stop lookups are open. Close another setup window and try again."
+    },
+    "create_entry": {
+      "default": "Your departure feed is ready to connect to a dashboard. The entity shows feed status, not departure times. [Install the OVAPI companion cards in HACS]({card_install_url}), then add an OVAPI card and select this favourite's entity. [Card setup guide]({card_docs_url})."
+    }
   },
-  "selector": {"recovery": {"options": {"retry": "Retry lookup", "search": "Search for another stop", "manual": "Enter a timing-point code (advanced)"}}},
+  "selector": {
+    "recovery": {
+      "options": {
+        "retry": "Retry lookup",
+        "search": "Search for another stop",
+        "manual": "Enter a timing-point code (advanced)"
+      }
+    },
+    "transport": {
+      "options": {
+        "bus": "Bus",
+        "tram": "Tram",
+        "metro": "Metro"
+      }
+    }
+  },
   "options": {
     "step": {
       "init": {
         "title": "Favourite preferences",
-        "description": "Filters and walking time do not increase upstream request frequency.",
-        "data": {"lines": "Lines", "destination": "Destination contains", "walking_minutes": "Walking time (minutes)"},
-        "data_description": {"lines": "Optional comma-separated public line numbers.", "destination": "Optional case-insensitive destination text.", "walking_minutes": "Used by the companion cards to calculate when to leave."}
+        "description": "Current source observations: {observed_modes}. A dash means no current mode information, not no service. Filters and walking time are local and make no extra requests.",
+        "data": {
+          "lines": "Only these line numbers (optional)",
+          "destination": "Destination contains (optional)",
+          "walking_minutes": "Walking time (minutes)",
+          "transport_types": "Transport to include"
+        },
+        "data_description": {
+          "lines": "Blank = all lines. Exact public numbers separated by commas, for example 50, 51. Do not add an M unless OVAPI reports it.",
+          "destination": "Blank = all destinations. One text fragment, for example Centraal; not a comma-separated list.",
+          "walking_minutes": "Used by the companion cards to calculate when to leave.",
+          "transport_types": "All selected by default, including future services. Select at least one transport type. This does not imply every mode serves this stop."
+        }
       }
     },
-    "error": {"already_configured": "Another favourite already has this stop and filter combination.", "invalid_walk": "Enter a whole number of walking minutes from 0 to 120."}
+    "error": {
+      "already_configured": "Another favourite already has this stop and filter combination.",
+      "invalid_walk": "Enter a whole number of walking minutes from 0 to 120.",
+      "invalid_transport": "Select at least one transport type: bus, tram or metro."
+    }
   },
   "entity": {
     "sensor": {
-      "board": {"name": "Departure board", "state": {"ready": "Ready", "stale": "Stale"}}
+      "board": {
+        "name": "Departure feed status",
+        "state": {
+          "ready": "Feed ready",
+          "stale": "Feed stale"
+        }
+      }
     }
   },
   "exceptions": {
-    "cannot_connect": {"message": "OVAPI is unavailable; retrying automatically."},
-    "unknown_stop": {"message": "OVAPI did not return this timing point. Check the configured code."},
-    "invalid_stop": {"message": "The timing-point code is invalid."},
-    "invalid_data": {"message": "OVAPI returned invalid data; retrying automatically."},
-    "response_too_large": {"message": "OVAPI response exceeded the safety limit."},
-    "rate_limited": {"message": "Waiting for the shared OVAPI request budget."},
-    "too_many_stops": {"message": "At most ten distinct timing points are supported."}
+    "cannot_connect": {
+      "message": "OVAPI is unavailable; retrying automatically."
+    },
+    "unknown_stop": {
+      "message": "OVAPI did not return this timing point. Check the configured code."
+    },
+    "invalid_stop": {
+      "message": "The timing-point code is invalid."
+    },
+    "invalid_data": {
+      "message": "OVAPI returned invalid data; retrying automatically."
+    },
+    "response_too_large": {
+      "message": "OVAPI response exceeded the safety limit."
+    },
+    "rate_limited": {
+      "message": "Waiting for the shared OVAPI request budget."
+    },
+    "too_many_stops": {
+      "message": "At most ten distinct timing points are supported."
+    }
   }
 }

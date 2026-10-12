@@ -98,6 +98,30 @@ cover cold setup, actual native progress events, cache-only setup, no-match erro
 recovery and automatic expiry. Time is advanced by the HA test clock, not by
 manually advancing configuration steps or reducing production request limits.
 
+The same EN/NL scenarios cover mode selection, explicit empty-selection recovery,
+the HACS card handoff, manual-code local waiting and a real synthetic 600-second
+server pause. A failed request returns a preserved form; resubmission waits
+automatically. Checkboxes are exercised through native keyboard/label interaction,
+not injected application state.
+
+Run the same browser checks on the declared minimum without mixing fixture groups:
+
+```sh
+UV_PROJECT_ENVIRONMENT=.venv-minimum OVAPI_UI_ARTIFACTS=.ha-e2e/minimum-evidence \
+  mise exec -- uv run --locked --no-default-groups --group minimum --group e2e \
+  pytest tests/ui/test_native_picker.py -m frontend --no-cov --timeout=60
+```
+
+`tests/test_brand.py` builds an isolated installation archive for each runtime,
+uses native HA integration discovery on its extracted files, and serves all eight
+PNGs through authenticated brands HTTP requests. No CDN fallback is allowed.
+The browser harness also starts the real `brands` component: normal HA bootstrap
+includes it independently, but starting `frontend` alone does not. Before
+capturing setup success, it asserts the actual image uses the local brands
+endpoint, receives HTTP 200, decodes successfully and has positive natural width.
+`mise exec -- uv run --locked python scripts/render_brand.py` regenerates the
+original transit-sign artwork; no network assets or installed fonts are needed.
+
 ### Companion-card E2E
 
 Do not point development tests at a live HA installation or public OVAPI.
@@ -143,10 +167,11 @@ resolved official templates, ran `setup-plan.sh`, `setup-tasks.sh` and
 phases without spawning additional agents. `.specify/feature.json` selects the
 feature independently of the app-managed Git branch and is upstream-defined local
 state (ignored by Git). The repository-local mise environment sets
-`SPECIFY_FEATURE_DIRECTORY=specs/002-stop-name-picker` so fresh checkouts reproduce
+`SPECIFY_FEATURE_DIRECTORY=specs/003-station-favourites` so fresh checkouts reproduce
 feature resolution. Constitution, specification,
 plan, research, data model, contract, tasks and verification live in
-`specs/001-ovapi-integration/`, `specs/002-stop-name-picker/` and
+`specs/001-ovapi-integration/`, `specs/002-stop-name-picker/`,
+`specs/003-station-favourites/` and
 `.specify/memory/constitution.md`.
 
 Run `mise run specify -- --help` for the pinned CLI. Never replace these artifacts
@@ -170,8 +195,9 @@ On the initial PR, HACS's license check reads GitHub repository metadata, which
 still reflects the bootstrap default branch without a license. The review branch
 includes the MIT `LICENSE`, but HACS reports that metadata check as failed until
 an authorized merge updates the default branch. Do not suppress the license check
-or modify `main` just to make the initial check green. All other enabled HACS
-checks passed; brand submission remains the only explicit HACS exception.
+or modify `main` just to make the initial check green. That initial metadata gap
+was resolved by the reviewed merge. Current HACS branding validation accepts
+bundled `brand/icon.png`, and the former `brands` exception is removed.
 
 Canonical EditorConfig, dprint, yamlfmt, gitleaks and Renovate settings are adopted.
 Documented deviations: Python uses four-space indentation; generated Spec Kit

@@ -41,9 +41,19 @@ honest, including valid empty timing points whose transport mode is unknown.
 
 ## Honest external gaps
 
-Brand assets have **not** been submitted to Home Assistant's separate brands
-repository. The `brands` rule remains `todo`; only the HACS branding check is
-ignored. Package/release publication and a Core PR are outside this delivery.
+Branding is now bundled locally, supported since HA 2026.3. Original 256/512-square
+icons and light/dark wordmarks ship in the validated archive. `test_brand.py`
+extracts that archive and checks every PNG through the real authenticated HA
+brands API on both supported runtimes, with no CDN request. The current HACS
+validator accepts local `brand/icon.png`, so its former exception is removed.
+Package/release publication and a Core PR remain outside this delivery.
+
+The [favourite-onboarding evidence](../specs/003-station-favourites/verification.md)
+covers manual interactive waiting, source-pause deadlines, cancellation, local
+transport preferences, translated empty-selection errors and native card handoff.
+Automatic station grouping is explicitly unbuilt in
+[#5](https://github.com/DevSecNinja/home-assistant-ovapi/issues/5); a bus-only area
+is not presented as full metro-station coverage.
 
 The client is fully asynchronous, typed and isolated in `client.py`, accepting
 an injected session, but is bundled for HACS. HA Core submission would require

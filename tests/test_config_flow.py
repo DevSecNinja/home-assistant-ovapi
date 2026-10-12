@@ -8,11 +8,22 @@ from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import config_validation as cv
 
 from custom_components.ovapi.config_flow import schema
+from custom_components.ovapi.const import CARD_DOCS_URL, CARD_INSTALL_URL
 
 from .test_coordinator import tick
+from .test_discovery_coordinator import settle
 from .test_init import make_entry, setup_entry
 
 INPUT = {"name": "Amsterdam Amstel", "stop_id": "01234567", "walking_minutes": 5}
+
+
+async def finish_progress(hass, result):
+    assert result["type"] is FlowResultType.SHOW_PROGRESS
+    await settle()
+    result = await hass.config_entries.flow.async_configure(result["flow_id"])
+    await hass.async_block_till_done()
+    assert result["type"] is not FlowResultType.SHOW_PROGRESS
+    return result
 
 
 @pytest.mark.parametrize(
@@ -36,10 +47,15 @@ async def test_user_flow(hass, api, payload):
     )
     assert result["type"] is FlowResultType.FORM
     result = await hass.config_entries.flow.async_configure(result["flow_id"], INPUT)
+    result = await finish_progress(hass, result)
     await hass.async_block_till_done()
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"] == {"name": "Amsterdam Amstel", "stop_id": "01234567"}
     assert result["options"]["walking_minutes"] == 5
+    assert result["description_placeholders"] == {
+        "card_install_url": CARD_INSTALL_URL,
+        "card_docs_url": CARD_DOCS_URL,
+    }
     assert api.call_count == 1
 
 
@@ -99,6 +115,7 @@ async def test_errors(hass, api, status, error):
     result = await hass.config_entries.flow.async_init(
         "ovapi", context={"source": config_entries.SOURCE_USER}, data=INPUT
     )
+    result = await finish_progress(hass, result)
     assert result["errors"] == {"base": error}
     assert api.call_count == 1
 
@@ -148,6 +165,7 @@ async def test_reconfigure(hass, api, payload):
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {**INPUT, "stop_id": "76543210", "name": "Centraal"}
     )
+    result = await finish_progress(hass, result)
     await hass.async_block_till_done()
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reconfigure_successful"
@@ -173,6 +191,7 @@ async def test_reconfigure_loaded_to_cached_target(hass, api, payload, freezer):
         },
         data={**INPUT, "stop_id": "76543210"},
     )
+    result = await finish_progress(hass, result)
     await hass.async_block_till_done()
     assert result["reason"] == "reconfigure_successful"
     assert entry.state is ConfigEntryState.LOADED
