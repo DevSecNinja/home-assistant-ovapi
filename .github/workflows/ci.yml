@@ -9,6 +9,10 @@ concurrency:
   cancel-in-progress: true
 jobs:
   shared-lint:
+    # v3.2.0 declares SARIF permissions even for disabled checkov/trivy jobs.
+    permissions:
+      contents: read
+      security-events: write
     uses: DevSecNinja/.github/.github/workflows/lint.yml@24acc67adf1be33089e73b2fdbdb4be8c12d145b # v3.2.0
     with:
       mise-version: "2026.9.15"

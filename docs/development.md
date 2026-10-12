@@ -88,6 +88,12 @@ repo-starter at `970ad82787165d0f8673815c08614a13a498a74a`. CI reuses the shared
 lint workflow v3.2.0 by full SHA and enables failure gating (its default is false).
 HA pytest, ruff, types, packaging, HACS and hassfest are repository-specific jobs.
 All run on pull requests, including drafts, without path-filtered required checks.
+The pinned reusable lint workflow declares `security-events: write` on nested
+checkov/trivy jobs even when those jobs and SARIF upload are disabled. GitHub
+validates that declaration before evaluating job conditions, so the caller grants
+that permission **only to the shared-lint job**. Other jobs remain contents-read.
+The first hosted run demonstrated this static permission requirement; it is a
+documented central-workflow limitation, not an enabled publication/upload action.
 
 Canonical EditorConfig, dprint, yamlfmt, gitleaks and Renovate settings are adopted.
 Documented deviations: Python uses four-space indentation; generated Spec Kit
