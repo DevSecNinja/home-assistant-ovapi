@@ -81,3 +81,7 @@ converge and obtain native review before handing back the PR.
 ## Phase 7: Convergence
 
 - [x] T018 Include the calendar date in native pause deadlines in `custom_components/ovapi/config_flow.py` and verify a Retry-After longer than 24 hours in `tests/test_manual_progress.py` per FR-014 (partial).
+
+## Phase 8: Parent visual verification
+
+- [x] T019 Start the real HA brands component in `tests/ui/test_native_picker.py`; reproduce the missing-image failure, assert the native local image request/HTTP 200/decode/natural width, and recapture EN/NL handoff on both supported HA runtimes per SC-007.

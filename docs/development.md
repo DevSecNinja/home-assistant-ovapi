@@ -115,6 +115,10 @@ UV_PROJECT_ENVIRONMENT=.venv-minimum OVAPI_UI_ARTIFACTS=.ha-e2e/minimum-evidence
 `tests/test_brand.py` builds an isolated installation archive for each runtime,
 uses native HA integration discovery on its extracted files, and serves all eight
 PNGs through authenticated brands HTTP requests. No CDN fallback is allowed.
+The browser harness also starts the real `brands` component: normal HA bootstrap
+includes it independently, but starting `frontend` alone does not. Before
+capturing setup success, it asserts the actual image uses the local brands
+endpoint, receives HTTP 200, decodes successfully and has positive natural width.
 `mise exec -- uv run --locked python scripts/render_brand.py` regenerates the
 original transit-sign artwork; no network assets or installed fonts are needed.
 

@@ -66,6 +66,20 @@ and the HACS link. Source counts remain bounded. Only the isolated HA origin is
 allowed in the browser; no live user instance or real departure data is involved.
 PNG screenshots remain under ignored `.ha-e2e/`.
 
+Final parent visual inspection caught a broken icon in the earlier handoff
+capture. The isolated browser fixture had initialized `frontend` without
+`brands`, which normal HA bootstrap includes independently in
+`DEFAULT_INTEGRATIONS`. The missing brands/token setup left the native image
+source empty. A new local-image assertion reproduced that failure.
+
+Starting the real `brands` component in the browser fixture fixed it without
+changing production integration code, assets or authentication. Both complete
+EN/NL browser runs passed again on minimum/current HA. Before handoff capture,
+the actual image must use `/api/brands/integration/ovapi/...`, receive HTTP 200,
+complete `HTMLImageElement.decode()` and have `naturalWidth > 0`. All four
+recaptured `phone-card-handoff.png` images were visually inspected with the
+original icon visible. The separate extracted-package API tests remain in place.
+
 Initial browser harness failures came from clicking the checkbox's covered native
 input and keyboard toggling after rerender. Tests now use native label activation
 for error recovery and assert the resulting checked state, without forced clicks
@@ -130,5 +144,8 @@ above; passing tests are not a claim of human approval.
 Hosted CI `38250613802` passed on `c56f47a483102c936259e1a23cc8848c98b415e5`:
 both backend runtimes, HACS with branding enabled, hassfest, actionlint, gitleaks,
 dprint, zizmor and yamlfmt. The follow-up checklist correction is documentation
-only. The parent session owns posting/resolving the review thread after its
-checks. Nothing is merged, released or installed on a live HA.
+only, and its CI `38250916124` passed on
+`59dba47d0e9e97ff3d9f9c8f07bf3199b1aaab44`. The parent confirmed reply
+`4248161331` exists and the native review thread is resolved. The subsequent
+browser-branding correction changes the harness/evidence only, not production
+behavior. Nothing is merged, released or installed on a live HA.

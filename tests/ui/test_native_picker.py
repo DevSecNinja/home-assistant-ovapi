@@ -7,6 +7,7 @@ import os
 import time
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pytest
 from aiohttp.web_log import AccessLogger
@@ -91,6 +92,8 @@ async def test_native_picker(
         "key": "onboarding",
         "data": {"done": ["user", "core_config", "integration", "analytics"]},
     }
+    # Normal HA bootstrap starts brands separately from frontend dependencies.
+    assert await async_setup_component(hass, "brands", {})
     assert await async_setup_component(hass, "frontend", {})
     assert await async_setup_component(hass, "ovapi", {})
     client = await hass_client()
@@ -148,6 +151,13 @@ async def test_native_picker(
             ),
         )
         page = await context.new_page()
+        brand_responses = {}
+
+        def observe_brand(response):
+            if response.url.startswith(url + "/api/brands/integration/ovapi/"):
+                brand_responses[urlsplit(response.url).path] = response.status
+
+        page.on("response", observe_brand)
 
         async def localized(key):
             await page.wait_for_function(
@@ -272,6 +282,20 @@ async def test_native_picker(
                 "repository=lovelace-ovapi&category=plugin"
                 in await handoff.get_attribute("href")
             )
+            icon = page.locator("step-flow-create-entry img[alt='OVAPI']")
+            await icon.wait_for()
+            image_url = await icon.get_attribute("src")
+            assert image_url is not None
+            image_path = urlsplit(image_url).path
+            assert image_path.startswith("/api/brands/integration/ovapi/")
+            assert (
+                await icon.evaluate(
+                    "async (image) => { await image.decode();"
+                    " return image.naturalWidth; }"
+                )
+                > 0
+            )
+            assert brand_responses[image_path] == 200
             await page.screenshot(path=str(artifacts / "phone-card-handoff.png"))
             await page.get_by_role(
                 "button",
