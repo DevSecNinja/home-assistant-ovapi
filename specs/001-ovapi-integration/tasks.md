@@ -85,7 +85,7 @@ the check is not suppressed, and no merge is performed. See verification.md.
 - [x] T027 Make `hacs.json` the supported-floor authority; validate stable versions, installed HA/fixture metadata and stale minimum selection in `scripts/check_compatibility.py` and `tests/test_compatibility.py`.
 - [x] T028 Lock a dependency-consistent minimum HA fixture in `pyproject.toml`/`uv.lock`; run the full suite and coverage gates for minimum and development runtimes through `.mise.toml` and `.github/workflows/ci.yml`.
 - [x] T029 Use `manifest.json` as integration-release authority; replace magic version assertions with static `const.VERSION`/project metadata guards in `scripts/check_package.py`, coherent-bump regressions in `tests/test_release_versions.py`, and actual outgoing User-Agent assertions in `tests/test_client.py`.
-- [ ] T030 Document independent version domains and deliberate bump procedure in `docs/development.md`; record local/hosted compatibility evidence in `verification.md`, then commit/push the same unmerged PR.
+- [x] T030 Document independent version domains and deliberate bump procedure in `docs/development.md`; record local/hosted compatibility evidence in `verification.md`, then commit/push the same unmerged PR.
 
 ## Phase 10: User-directed targeted review fixes
 

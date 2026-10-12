@@ -167,3 +167,17 @@ The canonical card contract explicitly says that none of the board statuses
 implies cancellation or absence of service, and a null departure field means
 unknown. The maintained Spec Kit contract points to that document; no payload
 version or shape changed. Review replies/resolution remain with the coordinator.
+
+### Hosted follow-up evidence
+
+Code commits: `1c29615` adds compatibility/release guards; `2f0b2de` scopes
+validation errors and clarifies the contract. Hosted Linux run
+[38228121842](https://github.com/DevSecNinja/home-assistant-ovapi/actions/runs/38228121842)
+on `2f0b2de` verifies both actual runtime pairs above: **158 passed in each lane**,
+100% statement/branch coverage for all integration modules, plus passing strict
+types, package, shared lint and hassfest jobs.
+
+The only failed job remains HACS's pre-existing repository-license metadata check
+(seven of eight validations pass). No ignore, main-branch edit, merge or release
+was added. The minimum remains 2026.10.0, integration release remains 0.1.0,
+and contract/config/upstream version domains remain independent.
