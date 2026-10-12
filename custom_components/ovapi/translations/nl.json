@@ -36,7 +36,7 @@
       },
       "point": {
         "title": "Kies je haltebord",
-        "description": "Kies een haltecode met de namen, lijnen en bestemmingen van OVAPI. Dit zijn voorbeelden van actuele informatie, niet alle diensten. Zonder actuele vertrekinformatie kunnen richting en vervoermiddel onbekend zijn. Geen vertrekgegevens betekent niet dat er niets rijdt.",
+        "description": "Kies een haltecode met de namen, lijnen en bestemmingen van OVAPI. Dit zijn voorbeelden van actuele informatie, niet alle diensten. Zonder actuele vertrekinformatie kunnen richting en vervoermiddel onbekend zijn. Een lege vertreklijst betekent niet dat er geen diensten rijden.",
         "data": {"name": "Naam favoriet", "stop_id": "Haltebord of richting", "lines": "Lijnen", "destination": "Bestemming bevat", "walking_minutes": "Looptijd (minuten)"},
         "data_description": {"name": "Je eigen naam voor deze favoriet.", "stop_id": "Codes onderscheiden halteborden als beschrijvingen ontbreken.", "lines": "Optionele lijnnummers, gescheiden door komma's.", "destination": "Optionele bestemmingstekst; hoofdletters maken niet uit.", "walking_minutes": "De bijbehorende kaarten berekenen hiermee wanneer je moet vertrekken."}
       },
@@ -48,6 +48,7 @@
     },
     "progress": {"lookup": "Gegevens laden van OVAPI. Normaal instellen heeft geen verplichte wachttijd. Alle instelvensters delen twee zoekaanvragen per twee minuten; extra aanvragen kunnen wachten. Serverfouten kunnen een langere pauze vereisen. Dit gaat automatisch verder; sluit het scherm om te annuleren."},
     "error": {
+      "reconfigure_in_progress": "Een ander instelvenster wijzigt deze favoriet. Rond dat eerst af of sluit het venster voordat je opnieuw probeert.",
       "short_query": "Voer minstens twee tekens in, of kies geavanceerde code-invoer.",
       "invalid_name": "Voer een niet-lege naam voor de favoriet in.",
       "invalid_walk": "Voer een geheel aantal loopminuten van 0 tot 120 in.",

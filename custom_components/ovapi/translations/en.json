@@ -36,7 +36,7 @@
       },
       "point": {
         "title": "Choose your stop sign",
-        "description": "Choose a timing point using the names, lines and destinations supplied by OVAPI. These are examples of current information, not all services. Without current departure information, the direction and transport mode may be unknown. No departures does not mean no service.",
+        "description": "Choose a timing point using the names, lines and destinations supplied by OVAPI. These are examples of current information, not all services. Without current departure information, the direction and transport mode may be unknown. An empty departure list does not mean that no services operate.",
         "data": {"name": "Favourite name", "stop_id": "Stop sign or direction", "lines": "Lines", "destination": "Destination contains", "walking_minutes": "Walking time (minutes)"},
         "data_description": {"name": "Your own label for this favourite.", "stop_id": "Codes distinguish stop signs where source descriptions are missing.", "lines": "Optional comma-separated public line numbers.", "destination": "Optional case-insensitive destination text.", "walking_minutes": "Used by the companion cards to calculate when to leave."}
       },
@@ -48,6 +48,7 @@
     },
     "progress": {"lookup": "Loading from OVAPI. Normal setup has no timed wait. All setup windows share two lookup requests per two minutes; extra lookups may need to wait. Server errors can require a longer pause. This continues automatically; close to cancel."},
     "error": {
+      "reconfigure_in_progress": "Another setup window is changing this favourite. Finish there or close it before trying again.",
       "short_query": "Enter at least two characters, or choose advanced code entry.",
       "invalid_name": "Enter a nonblank favourite name.",
       "invalid_walk": "Enter a whole number of walking minutes from 0 to 120.",
