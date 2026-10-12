@@ -94,6 +94,21 @@ and raw records are discarded. Completed tasks return no source dataset.
 Cancelling the last waiter cancels queued/in-flight lookup work. Selected boards
 inherit the detail result's original timestamps; selection never renews expiry.
 
+Replacing a favourite at the ten-stop limit reserves its prospective timing point
+against that favourite's old point only when the old point is unshared. The
+working entry and old board are retained until a successful configuration update.
+Temporary replacement boards may therefore coexist with the ten configured
+boards, bounded by the admitted flows and their original retention deadlines.
+Abort, expiry and failed validation release reservations and discard unconfigured
+replacement boards; completing the update trims the old unshared board.
+Uncommitted changes that would reduce the stop count do not lend capacity to
+another flow. Every claimant of a shared new target must supply its own eligible
+replacement credit; an ordinary add cannot borrow another flow's credit and
+outlive that replacement's abort, failure or expiry. Two windows cannot reserve different replacements for one entry,
+and an aborted in-flight validation cannot later commit or restore its target.
+Manual replacement validation batches at most ten points, omitting the replaced
+unshared old point from that request without discarding its cached board.
+
 Native picker schemas are also transient: expiry clears their candidate labels,
 notifies an active frontend to reload a source-free retry form, and replay rejects
 expired choices. A brief native progress step also establishes this subscription

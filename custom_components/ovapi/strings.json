@@ -92,7 +92,7 @@
       },
       "point": {
         "title": "Choose your stop sign",
-        "description": "Choose one stop sign or direction. Currently reported in these choices: {observed_modes}. A dash means no current mode information, not no service. Names, lines and destinations are current examples, not complete coverage.",
+        "description": "Choose one stop sign or direction. Currently reported in these choices: {observed_modes}. A dash means no current mode information, not no service. Names, lines and destinations are current examples, not complete coverage. An empty departure list does not mean that no services operate.",
         "data": {
           "name": "Favourite name",
           "stop_id": "Stop sign or direction",

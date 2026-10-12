@@ -12,6 +12,12 @@
   schema choices share the lookup's deadline and are cleared on remove/expiry.
 - `Favourite`: unchanged `{name, stop_id}` plus existing options, unique identity
   and entity registry IDs. Selected board cache inherits lookup timestamps.
+- `StopReservation`: flow-owned target code and optional replaced entry ID.
+  Capacity is checked against the prospective configuration without changing the
+  working entry. A unique unshared old point can back one new point; an
+  uncommitted reduction cannot fund another flow. Reservation ownership is checked
+  after asynchronous validation, and removal releases it and any unconfigured
+  target board. Temporary old/new copies keep their original expiry deadlines.
 
 Transitions: menu -> directory progress -> search -> area choice -> area progress
 -> timing point -> favourite -> existing create/reconfigure. Errors return visible

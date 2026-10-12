@@ -81,6 +81,14 @@ client/coordinator rather than a second transport or independent budget.
   acquisition/deadline; selection never resets their age.
 - No broad logging suppression: inspect/test core serialization and protect only
   source-bearing OVAPI flow frames if an actual logging path exists.
+- Full-capacity reconfiguration uses flow-owned prospective stop reservations.
+  Preserve the old entry/board until success, exclude its unshared old point only
+  for capacity and bounded replacement validation, and release the target on
+  failure/abort. Recheck ownership after an awaited request. No uncommitted
+  shrinking edit grants another flow extra capacity.
+- Native browser evidence covers both addition and reconfiguration in actual
+  English and Dutch frontend languages on minimum and locked HA, checking entity
+  identity and local options as well as translated transitions.
 
 ## Complexity Tracking
 

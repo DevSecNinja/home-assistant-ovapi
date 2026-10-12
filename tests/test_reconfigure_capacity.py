@@ -393,3 +393,91 @@ async def test_abort_inflight_manual_replacement_cannot_restore_target(
     assert TARGET not in coordinator._cache
     assert not coordinator._reservations
     assert len(coordinator._cache) == 10
+
+
+async def test_late_replacement_keeps_old_board_and_reports_cooldown(
+    hass, api, freezer
+):
+    from pytest_homeassistant_custom_component.test_util.aiohttp import (
+        AiohttpClientMockResponse,
+    )
+
+    first = await prepare(hass, api)
+    second = hass.config_entries.async_entries("ovapi")[1]
+    coordinator = get_coordinator(hass)
+    original = coordinator._cache[CODES[1]]
+    flows = []
+    for entry in (first, second):
+        result = await hass.config_entries.flow.async_init(
+            "ovapi",
+            context={
+                "source": config_entries.SOURCE_RECONFIGURE,
+                "entry_id": entry.entry_id,
+            },
+        )
+        await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "manual"}
+        )
+        flows.append(result["flow_id"])
+    started, finish = asyncio.Event(), asyncio.Event()
+    codes = sorted([*CODES[1:], TARGET])
+
+    async def response(method, url, data):
+        started.set()
+        await finish.wait()
+        return AiohttpClientMockResponse(
+            method, url, json={code: {"Passes": {}} for code in codes}
+        )
+
+    api.get(
+        f"http://v0.ovapi.nl/tpc/{','.join(codes)}/departures", side_effect=response
+    )
+    freezer.tick(120)
+    # Use one discovery slot so the late manual caller must wait after dispatch.
+    api.get("http://v0.ovapi.nl/stopareacode/", json=DIRECTORY)
+    await coordinator.async_lookup("")
+    first_task = asyncio.create_task(
+        hass.config_entries.flow.async_configure(
+            flows[0], {"name": "First replacement", "stop_id": TARGET}
+        )
+    )
+    await started.wait()
+    late_task = asyncio.create_task(
+        hass.config_entries.flow.async_configure(
+            flows[1], {"name": "Late replacement", "stop_id": "08888888"}
+        )
+    )
+    await settle()
+    assert coordinator._cache[CODES[1]] is original
+    finish.set()
+    first_result, late_result = await asyncio.gather(first_task, late_task)
+    first_result = await finish_progress(hass, first_result)
+    assert first_result["reason"] == "reconfigure_successful"
+    assert late_result["type"] is FlowResultType.SHOW_PROGRESS
+    assert late_result["progress_action"] == "budget_wait"
+    assert second.data["stop_id"] == CODES[1]
+    assert coordinator.status(CODES[1]) == "ready"
+    assert "08888888" not in coordinator._cache
+    assert set(coordinator._reservations) == {flows[1]}
+    assert len(coordinator._cache) == coordinator.stop_count == 10
+    assert api.call_count == 3
+
+    from .test_coordinator import tick
+
+    next_codes = sorted([*CODES[2:], TARGET, "08888888"])
+    api.get(
+        f"http://v0.ovapi.nl/tpc/{','.join(next_codes)}/departures",
+        json={code: {"Passes": {}} for code in next_codes},
+    )
+    await tick(hass, freezer, 119)
+    assert second.data["stop_id"] == CODES[1]
+    assert coordinator.status(CODES[1]) == "ready"
+    assert api.call_count == 3
+    await tick(hass, freezer, 1)
+    late_result = await finish_progress(hass, late_result)
+    assert late_result["reason"] == "reconfigure_successful"
+    assert second.data["stop_id"] == "08888888"
+    assert second.title == "Late replacement"
+    assert not coordinator._reservations
+    assert len(coordinator._cache) == coordinator.stop_count == 10
+    assert api.call_count == 4

@@ -85,3 +85,7 @@ converge and obtain native review before handing back the PR.
 ## Phase 8: Parent visual verification
 
 - [x] T019 Start the real HA brands component in `tests/ui/test_native_picker.py`; reproduce the missing-image failure, assert the native local image request/HTTP 200/decode/natural width, and recapture EN/NL handoff on both supported HA runtimes per SC-007.
+
+## Phase 9: Merged-main reconciliation
+
+- [x] T020 Reconcile merged main `2442d39` without rewriting history; preserve final reservation safety and all incoming regressions, adapt the late-arrival capacity test to automatic progress, retain native UI assertions and rerun both HA suites/coverage plus EN/NL browser gates in `tests/`.

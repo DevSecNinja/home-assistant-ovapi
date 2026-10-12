@@ -92,7 +92,7 @@
       },
       "point": {
         "title": "Kies je haltebord",
-        "description": "Kies een haltebord of richting. Nu gemeld bij deze keuzes: {observed_modes}. Een streepje betekent geen actuele informatie over vervoermiddelen, niet dat er niets rijdt. Namen, lijnen en bestemmingen zijn actuele voorbeelden, geen volledige dekking.",
+        "description": "Kies een haltebord of richting. Nu gemeld bij deze keuzes: {observed_modes}. Een streepje betekent geen actuele informatie over vervoermiddelen, niet dat er niets rijdt. Namen, lijnen en bestemmingen zijn actuele voorbeelden, geen volledige dekking. Een lege vertreklijst betekent niet dat er geen diensten rijden.",
         "data": {
           "name": "Naam favoriet",
           "stop_id": "Haltebord of richting",

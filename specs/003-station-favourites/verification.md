@@ -28,8 +28,8 @@ remains open in [#5](https://github.com/DevSecNinja/home-assistant-ovapi/issues/
 
 | Command                                                                                                                         | Result                                                                |
 | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `mise run test`                                                                                                                 | Passed: 283 tests, HA 2026.10.1 / fixture 0.13.372                    |
-| `mise run test-minimum`                                                                                                         | Passed: 283 tests, HA 2026.10.0 / fixture 0.13.371                    |
+| `mise run test`                                                                                                                 | Passed: 284 tests, HA 2026.10.1 / fixture 0.13.372                    |
+| `mise run test-minimum`                                                                                                         | Passed: 284 tests, HA 2026.10.0 / fixture 0.13.371                    |
 | `mise run lint`                                                                                                                 | Passed: ruff, format, dprint, yamlfmt, actionlint, offline zizmor     |
 | `mise run typecheck`                                                                                                            | Passed: strict mypy, 9 integration modules                            |
 | `mise run package`                                                                                                              | Passed: 23 integration files, including all 8 validated PNGs          |
@@ -148,4 +148,35 @@ only, and its CI `38250916124` passed on
 `59dba47d0e9e97ff3d9f9c8f07bf3199b1aaab44`. The parent confirmed reply
 `4248161331` exists and the native review thread is resolved. The subsequent
 browser-branding correction changes the harness/evidence only, not production
-behavior. Nothing is merged, released or installed on a live HA.
+behavior. This session has not merged any pull request, published a release or
+modified a live HA installation.
+
+## Reconciliation with merged main
+
+After PR #4 merged, the user requested resolving PR #6 against
+`origin/main` at `2442d3941ccc60622e282e9bfa47b526f70036d6`. A non-rewriting merge
+was performed in this PR's existing worktree; this does not merge PR #6 itself.
+The initial worktree was clean.
+
+Seven files conflicted:
+
+| Paths                                                                                  | Resolution                                                                                                                                                                                                                                                            |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `custom_components/ovapi/config_flow.py`, `custom_components/ovapi/coordinator.py`     | Keep final main replacement-credit/reservation safeguards together with the already reviewed interactive queue and pending-waiter accounting. These files remain byte-identical to the pre-merge PR head.                                                             |
+| `custom_components/ovapi/strings.json`, `translations/en.json`, `translations/nl.json` | Preserve mode-filter labels/observations and explicitly retain main's EN/NL warning that an empty departure list does not prove no service.                                                                                                                           |
+| `tests/test_reconfigure_capacity.py`                                                   | Retain every incoming regression, including the main-only event-gated late-arrival scenario. Adapt that scenario to assert automatic budget waiting, retained old board, ten-stop capacity and successful continuation instead of the superseded hard cooldown error. |
+| `tests/ui/test_native_picker.py`                                                       | Retain main's dropdown-dismissal assertion, bilingual reconfiguration and this PR's native branding/image decoding, transport selection and manual-progress coverage.                                                                                                 |
+
+The incoming final `reserve_stop`, `release_stop`, `_capacity_entries` and
+`_remember_board` methods were compared structurally during reconciliation.
+Incoming policy/specification evidence was preserved rather than selecting an
+entire branch wholesale. No versions, entity IDs, runtime request limits,
+retention rules, station #5 status or CI triggers changed.
+
+Post-reconciliation validation:
+
+- `mise exec -- uv run --locked pytest tests/test_reconfigure_capacity.py tests/test_manual_progress.py tests/test_transport_filters.py tests/test_config_flow.py --no-cov -q --tb=short --show-capture=no` — passed, 58 targeted tests.
+- Both full runtime suites and coverage gates in the table above — passed, 284 tests each.
+- `mise run typecheck`, `mise run lint`, `mise run package` — passed.
+- Both exact EN/NL native-browser commands above — passed again, including actual local brand HTTP 200, successful image decoding and positive natural width.
+- `git diff --check` and conflict-marker scan — passed; no unresolved paths remain.
