@@ -95,6 +95,7 @@ class OvapiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._expiry_cancel: Callable[[], None] | None = None
         self._expired = False
         self._search_started = False
+        self._reserved = False
         self._notify_cancel: Callable[[], None] | None = None
         self._notify_until = 0.0
         self._notify_delay = 1.0
@@ -262,8 +263,14 @@ class OvapiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_retry()
         if user_input is not None:
             try:
+                self._reserved = True
                 get_coordinator(self.hass).select_point(
-                    self._key, user_input[CONF_STOP]
+                    self._key,
+                    user_input[CONF_STOP],
+                    reservation_id=self.flow_id,
+                    replacing=self.context.get("entry_id")
+                    if self.source == config_entries.SOURCE_RECONFIGURE
+                    else None,
                 )
             except ApiError as err:
                 self._lookup_error = err.code
@@ -357,6 +364,9 @@ class OvapiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def _clear_choices(self) -> None:
         self._ack_progress()
+        if self._reserved:
+            get_coordinator(self.hass).release_stop(self.flow_id)
+            self._reserved = False
         if self._expiry_cancel is not None:
             self._expiry_cancel()
             self._expiry_cancel = None
@@ -400,7 +410,12 @@ class OvapiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         return self.async_abort(reason="already_configured")
                 try:
                     if points is None:
-                        await get_coordinator(self.hass).async_validate(data[CONF_STOP])
+                        self._reserved = True
+                        await get_coordinator(self.hass).async_validate(
+                            data[CONF_STOP],
+                            reservation_id=self.flow_id,
+                            replacing=current.entry_id if current else None,
+                        )
                 except ApiError as err:
                     errors["base"] = err.code
                 else:

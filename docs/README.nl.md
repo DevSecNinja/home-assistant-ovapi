@@ -12,7 +12,7 @@ geautomatiseerd.
 
 [![OVAPI openen in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=DevSecNinja&repository=home-assistant-ovapi&category=integration)
 
-Als HACS al is geinstalleerd, opent de knop deze repository in jouw Home Assistant.
+Als HACS al is geïnstalleerd, opent de knop deze repository in jouw Home Assistant.
 Bevestig het toevoegen als daarom wordt gevraagd, download OVAPI en herstart
 Home Assistant. Werkt de koppeling niet, volg dan deze handmatige stappen.
 

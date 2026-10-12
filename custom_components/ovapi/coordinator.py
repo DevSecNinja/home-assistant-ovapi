@@ -4,11 +4,12 @@ import asyncio
 import json
 import logging
 import time
-from collections import deque
+from collections import Counter, deque
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Literal, TypedDict
+from uuid import uuid4
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -77,6 +78,12 @@ class CachedLookup:
         self.points.clear()
 
 
+@dataclass(frozen=True, slots=True, repr=False)
+class StopReservation:
+    stop: str
+    replacing: str | None
+
+
 def normalized_lines(value: str) -> tuple[str, ...]:
     return tuple(
         sorted({line.strip().casefold() for line in value.split(",") if line.strip()})
@@ -116,6 +123,7 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
         self._lookups_since_poll = 0
         self._backoff_until = 0.0
         self._pending: set[str] = set()
+        self._reservations: dict[str, StopReservation] = {}
         self._inflight: asyncio.Task[dict[str, str]] | None = None
         self._expiry_cancel: Callable[[], None] | None = None
         self._next_request = 0.0
@@ -129,7 +137,74 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
         return len(self._configured_stops())
 
     def _configured_stops(self) -> set[str]:
-        return set(self.entries.values())
+        return set(self._registered_entries().values())
+
+    def _registered_entries(self) -> dict[str, str]:
+        return {
+            entry_id: entry.data[CONF_STOP]
+            if (entry := self.hass.config_entries.async_get_entry(entry_id))
+            else stop
+            for entry_id, stop in self.entries.items()
+        }
+
+    def _capacity_entries(self) -> dict[str, str]:
+        return {
+            **self.entries,
+            **{
+                entry.entry_id: entry.data[CONF_STOP]
+                for entry in self.hass.config_entries.async_entries(DOMAIN)
+                if entry.disabled_by is None
+            },
+        }
+
+    def reserve_stop(self, token: str, stop: str, replacing: str | None = None) -> None:
+        """Reserve the prospective configuration, without changing active boards."""
+        if replacing is not None and any(
+            key != token and item.replacing == replacing
+            for key, item in self._reservations.items()
+        ):
+            raise ApiError("reconfigure_in_progress")
+        entries = self._capacity_entries()
+        reservations = {**self._reservations, token: StopReservation(stop, replacing)}
+        counts = Counter(entries.values())
+        targets = {item.stop for item in reservations.values()}
+        released: set[str] = set()
+        # Only one unique old point can back each new point. A shrinking edit
+        # cannot lend its future free slot to another flow before it commits.
+        for target in targets - counts.keys():
+            for item in reservations.values():
+                old = (
+                    entries.get(item.replacing) if item.replacing is not None else None
+                )
+                if (
+                    item.stop == target
+                    and old is not None
+                    and counts[old] == 1
+                    and old not in targets
+                ):
+                    released.add(old)
+                    break
+        prospective = (
+            (set(counts) - released) | targets | (self._pending - set(entries.values()))
+        )
+        if len(prospective) > MAX_STOPS:
+            raise ApiError("too_many_stops")
+        self._reservations[token] = reservations[token]
+
+    def release_stop(self, token: str, *, discard_unconfigured: bool = True) -> None:
+        reservation = self._reservations.pop(token, None)
+        if reservation is None:
+            return
+        remaining = {item.stop for item in self._reservations.values()}
+        if reservation.stop not in remaining:
+            self._pending.discard(reservation.stop)
+        protected = set(self._capacity_entries().values()) | self._pending | remaining
+        if discard_unconfigured and reservation.stop not in protected:
+            self._cache.pop(reservation.stop, None)
+        for stop in list(self._cache):
+            if len(self._cache) > MAX_STOPS and stop not in protected:
+                self._cache.pop(stop)
+        self._schedule_expiry()
 
     @callback
     def register(self, entry: ConfigEntry) -> None:
@@ -162,19 +237,42 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
             return None
         return board
 
-    async def async_validate(self, stop: str) -> None:
+    async def async_validate(
+        self,
+        stop: str,
+        *,
+        reservation_id: str | None = None,
+        replacing: str | None = None,
+    ) -> None:
         """Validate through the same cache/budget, never a second client."""
-        if self._get_board(stop) is not None:
-            return
-        if len(self._configured_stops() | self._pending | {stop}) > MAX_STOPS:
-            raise ApiError("too_many_stops")
-        self._pending.add(stop)
+        token = None
+        reservation = None
+        if reservation_id is not None or stop not in self._capacity_entries().values():
+            token = reservation_id or uuid4().hex
+            self.reserve_stop(token, stop, replacing)
+            reservation = self._reservations[token]
+        success = False
         try:
-            errors = await self._refresh()
             if self._get_board(stop) is None:
-                raise ApiError(errors.get(stop, "rate_limited"))
+                self._pending.add(stop)
+                errors = await self._refresh()
+                if reservation_id is not None and (
+                    self._reservations.get(reservation_id) is not reservation
+                ):
+                    raise ApiError("selection_expired")
+                if self._get_board(stop) is None:
+                    raise ApiError(errors.get(stop, "rate_limited"))
+            success = True
         finally:
             self._pending.discard(stop)
+            if (
+                token is not None
+                and (reservation_id is None or not success)
+                and self._reservations.get(token) is reservation
+            ):
+                self.release_stop(
+                    token, discard_unconfigured=not success or replacing is not None
+                )
 
     async def _async_update_data(self) -> dict[str, Status]:
         await self._refresh()
@@ -202,6 +300,19 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
 
     async def _perform_batch(self) -> dict[str, str]:
         stops = self._configured_stops() | self._pending
+        if len(stops) > MAX_STOPS:
+            replacing = {
+                item.replacing
+                for item in self._reservations.values()
+                if item.stop in self._pending
+            }
+            retained = {
+                stop
+                for entry_id, stop in self._registered_entries().items()
+                if entry_id not in replacing
+            }
+            # Keep the old board cached, but validate its replacement in this batch.
+            stops = retained | self._pending
         if not stops or time.monotonic() < self._next_request:
             return {}
         started = time.monotonic()
@@ -360,34 +471,51 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
             )
             self._schedule_expiry()
 
-    def select_point(self, area: str, stop: str) -> None:
+    def select_point(
+        self,
+        area: str,
+        stop: str,
+        *,
+        reservation_id: str | None = None,
+        replacing: str | None = None,
+    ) -> None:
         lookup = self.lookup(area)
         if lookup is None or stop not in lookup.points:
             raise ApiError("selection_expired")
-        if len(self._configured_stops() | self._pending | {stop}) > MAX_STOPS:
-            raise ApiError("too_many_stops")
+        token = reservation_id or uuid4().hex
+        self.reserve_stop(token, stop, replacing)
         existing = self._get_board(stop)
-        if existing is not None and existing.fetched_at >= lookup.fetched_at:
-            return
-        self._remember_board(
-            stop,
-            CachedBoard(
-                lookup.points[stop].departures,
-                lookup.fetched_at,
-                lookup.expires_at,
-                lookup.monotonic_expiry,
-            ),
-        )
+        if existing is None or existing.fetched_at < lookup.fetched_at:
+            self._remember_board(
+                stop,
+                CachedBoard(
+                    lookup.points[stop].departures,
+                    lookup.fetched_at,
+                    lookup.expires_at,
+                    lookup.monotonic_expiry,
+                ),
+            )
+        if reservation_id is None:
+            self.release_stop(token, discard_unconfigured=False)
         self._schedule_expiry()
 
     def _remember_board(self, stop: str, board: CachedBoard) -> None:
         if len(self._cache) >= MAX_STOPS and stop not in self._cache:
             unused = next(
-                key
-                for key in self._cache
-                if key not in self._configured_stops() | self._pending
+                (
+                    key
+                    for key in self._cache
+                    if key
+                    not in (
+                        self._configured_stops()
+                        | self._pending
+                        | {item.stop for item in self._reservations.values()}
+                    )
+                ),
+                None,
             )
-            self._cache.pop(unused)
+            if unused is not None:
+                self._cache.pop(unused)
         self._cache[stop] = board
 
     @callback
@@ -463,6 +591,7 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
         for lookup in self._lookups.values():
             lookup.clear()
         self._lookups.clear()
+        self._reservations.clear()
 
 
 @callback
