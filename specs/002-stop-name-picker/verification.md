@@ -143,3 +143,99 @@ All 10 functional requirements, 5 success criteria, 7 acceptance scenarios,
 gap remained. The native search/progress description was aligned with the actual
 rendered controls and local/hosted evidence is recorded. GitHub Copilot review
 feedback is the remaining tracked delivery gate.
+
+## Post-merge Copilot review follow-up
+
+The user merged PR #3 before the six review comments were resolved. The fix
+commit was preserved locally without pushing that merged branch, then
+cherry-picked onto a new `devsecninja-picker-review-fixes` branch from merged main
+`696a326`. No station-wide feature, manual interactive-budget redesign, branding
+or transport-mode filtering is included in this follow-up.
+
+| Original review comment                                 | Correction and evidence                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `4247197172` - replacement at ten-stop capacity         | Flow-owned prospective reservations allow replacement of an unshared old point while retaining the working entry/board until success. Shared old points still count, concurrent replacements cannot double-spend capacity, shrinking edits cannot lend future capacity, and aborted in-flight validation cannot commit or restore a target. `tests/test_reconfigure_capacity.py` covers picker/manual paths, failure, abort, identity/options and concurrency. |
+| `4247197237` - bilingual add/reconfigure evidence       | Actual browser scenario now runs in English and Dutch using HA's selected language and translated native entry menus; both addition and reconfiguration preserve entity ID and options. Both minimum and locked HA runs pass.                                                                                                                                                                                                                                  |
+| `4247197298`, `4247197336` - English empty-list wording | Canonical strings and English translation now say an empty departure list does not mean that no services operate.                                                                                                                                                                                                                                                                                                                                              |
+| `4247197388` - Dutch empty-list wording                 | Natural singular wording: "Een lege vertreklijst betekent niet dat er geen diensten rijden."                                                                                                                                                                                                                                                                                                                                                                   |
+| `4247197419` - HACS prerequisite spelling               | Corrected "geïnstalleerd" in the Dutch installation instructions.                                                                                                                                                                                                                                                                                                                                                                                              |
+
+Red/green evidence: four initial full-capacity regressions failed before the fix;
+additional uncommitted-capacity and abort-in-flight regressions also failed
+before their corrections. The original active board remains available until
+successful configuration update, rather than being deleted to make space.
+Temporary new boards are bounded by active flow reservations and retain their
+original source-age deadlines; ordinary ten-point batches and request budgets
+are unchanged.
+
+| Final follow-up command                                                                                                                                                                                                                                                 | Result                                                                                                                  |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `mise run test`                                                                                                                                                                                                                                                         | Passed: 256 tests on HA 2026.10.1 / fixture 0.13.372; two optional browser cases deselected                             |
+| `mise run test-minimum`                                                                                                                                                                                                                                                 | Passed: 256 tests on exact HA 2026.10.0 / fixture 0.13.371                                                              |
+| `mise run test-ui -- -q --tb=short --show-capture=no`                                                                                                                                                                                                                   | Passed: English and Dutch native add/reconfigure/cache/error/expiry/exhausted-budget journeys, 2 tests in 19.63 seconds |
+| `UV_PROJECT_ENVIRONMENT=.venv-minimum OVAPI_UI_ARTIFACTS=.ha-e2e/evidence-minimum mise exec -- uv run --locked --no-default-groups --group minimum --group e2e pytest tests/ui/test_native_picker.py -m frontend --no-cov -q --timeout=60 --tb=short --show-capture=no` | Passed: the same two native bilingual journeys on minimum HA, 18.41 seconds                                             |
+| `mise run typecheck`                                                                                                                                                                                                                                                    | Passed: strict mypy for all nine integration modules                                                                    |
+| `mise run package`                                                                                                                                                                                                                                                      | Passed: all 15 integration files, translation parity and unchanged version guards                                       |
+| `mise run lint`                                                                                                                                                                                                                                                         | Passed: ruff, dprint, yamlfmt, actionlint and offline zizmor                                                            |
+
+Per-module statements are 100%; coordinator branches are 98.25%, all other
+modules including config flow have 100% branches. This supersedes the original
+implementation's test totals and coverage above.
+
+Fresh, synthetic screenshots are committed in `evidence/review-fixes/`:
+
+- [English reconfigure](evidence/review-fixes/en/phone-reconfigure.png) and
+  [Dutch reconfigure](evidence/review-fixes/nl/phone-reconfigure.png).
+- [Minimum HA English reconfigure](evidence/review-fixes/en/phone-reconfigure-minimum.png)
+  and [minimum HA Dutch reconfigure](evidence/review-fixes/nl/phone-reconfigure-minimum.png).
+- [English desktop search](evidence/review-fixes/en/desktop-stop-search.png) and
+  [Dutch desktop search](evidence/review-fixes/nl/desktop-stop-search.png).
+- [Dutch exhausted-budget progress](evidence/review-fixes/nl/phone-progress.png)
+  and [Dutch expired-choice recovery](evidence/review-fixes/nl/phone-expired-selection.png).
+
+The original six threads remain owned by the coordinator for replies/resolution
+after verifying the new PR. Hosted and follow-up review results will be recorded
+after that PR is opened.
+
+The new follow-up is [PR #4](https://github.com/DevSecNinja/home-assistant-ovapi/pull/4).
+Its first hosted locked-runtime lane exposed a test bootstrap race: simultaneous
+flow initialization did not guarantee simultaneous validation submissions.
+Commit `565a04e` initializes both public manual forms first, then submits both
+through the public flow manager concurrently. The exact combined ten-point
+request and request-count assertions remain unchanged.
+[Hosted run 38246991235](https://github.com/DevSecNinja/home-assistant-ovapi/actions/runs/38246991235)
+passes both backend lanes, HACS, hassfest and every enabled shared lint job.
+
+A separate event-gated late-arrival test verifies the contrasting case: when a
+second replacement joins after the batch starts, it reports cooldown, keeps its
+old configured board, releases its reservation, and sends no extra request.
+With that regression, `mise run test` and `mise run test-minimum` both pass
+**257 tests**, with the same coverage figures above. Staged pre-commit checks
+also pass. The browser evidence remains current; this CI correction changes tests
+only, not production scheduling.
+
+The coordinator confirmed that all six original PR #3 review threads were replied
+to and resolved, with links to the still-unmerged follow-up PR #4.
+
+PR #4's subsequent Copilot finding `4247832934` exposed one additional invariant:
+a non-replacement add of target X could share replacement A-to-X's credit, then
+outlive A-to-X's abort. Two new regressions failed before the fix. A new target
+now receives replacement credit only if **every claimant** supplies an eligible
+unshared old point; deleting other claims therefore cannot leave an unsupported
+add. This small change also rejects shared-old-point claimants while permitting
+same-target claims when a real spare slot exists.
+
+Tests cover both reservation creation orders, actual picker expiry/abort, manual
+failure/abort while in flight, shared old points, and real spare capacity.
+`tests/test_reconfigure_capacity.py` now has **19 passing tests**; `mise run test`
+and `mise run test-minimum` both pass **265 tests**. All module statements and
+config-flow branches remain 100%; coordinator branches are 98.21%.
+The coordinator owns the new thread reply/resolution after final verification.
+
+Final confirmation: production fix `62473ca` passed every enabled hosted check
+in [run 38248272052](https://github.com/DevSecNinja/home-assistant-ovapi/actions/runs/38248272052).
+Native bilingual browser checks passed again on locked/minimum HA in 19.74/19.94
+seconds; both installed environments also pass `uv pip check`. On 2026-10-12 the
+coordinator posted [reply 4247941195](https://github.com/DevSecNinja/home-assistant-ovapi/pull/4#discussion_r4247941195)
+and resolved the remaining review thread. All original and follow-up review
+findings are addressed. PR #4 remains open and unmerged for the user.

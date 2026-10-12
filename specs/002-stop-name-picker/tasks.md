@@ -83,4 +83,15 @@ alone: all three approved stories and required evidence are delivery gates.
 
 ## User-directed GitHub Copilot review
 
-- [ ] T023 Process GitHub Copilot review feedback and verify any follow-up changes; the coordinator owns the reviewer request and thread replies, with outcomes recorded in specs/002-stop-name-picker/verification.md.
+- [x] T023 Process GitHub Copilot review feedback and verify any follow-up changes; the coordinator owns the reviewer request and thread replies, with outcomes recorded in specs/002-stop-name-picker/verification.md.
+
+## Phase 8: Post-merge review fixes
+
+PR #3 was merged by the user before review follow-up delivery. These fixes are
+carried on a new branch from merged main, not pushed to or reopening that PR.
+
+- [x] T024 Fix full-capacity picker/manual reconfiguration using bounded flow-owned replacement reservations, with failure/abort/concurrency regressions in tests/test_reconfigure_capacity.py.
+- [x] T025 Exercise native English and Dutch add-and-reconfigure journeys on both supported HA versions in tests/ui/test_native_picker.py, preserving entity identity and options.
+- [x] T026 Correct empty-departure wording in strings.json and translations/en.json/translations/nl.json and the HACS prerequisite spelling in docs/README.nl.md.
+- [x] T027 Preserve updated bilingual screenshots and reservation/validation evidence, then open the new review-fix PR and verify hosted checks; coordinator owns review requests and replies.
+- [x] T028 Address PR #4's follow-up finding that same-target adds could borrow a replacement's capacity, covering both creation orders and abort/failure/expiry, then verify checks and coordinator thread resolution.
