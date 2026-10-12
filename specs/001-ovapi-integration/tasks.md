@@ -91,3 +91,4 @@ the check is not suppressed, and no merge is performed. See verification.md.
 
 - [x] T031 Attribute validation errors only to the current awaited batch and requested stop in `custom_components/ovapi/coordinator.py`; reproduce and fix unrelated partial-response/cooldown and late-joining in-flight failures in `tests/test_coordinator.py`.
 - [x] T032 Clarify in `docs/card-contract-v1.md` that no board status implies cancellation or absence of service, and null means unknown; the Spec Kit contract references this canonical document.
+- [x] T033 Remove a hosted-CI test harness race in `tests/test_coordinator.py` by using HA's single public domain bootstrap (which already loads entries concurrently) rather than racing it with redundant entry setup calls; retain loaded-state and exact batch-count assertions.

@@ -181,3 +181,12 @@ The only failed job remains HACS's pre-existing repository-license metadata chec
 (seven of eight validations pass). No ignore, main-branch edit, merge or release
 was added. The minimum remains 2026.10.0, integration release remains 0.1.0,
 and contract/config/upstream version domains remain independent.
+
+A docs-only rerun exposed a pre-existing test harness race:
+`test_concurrent_setup_batches` explicitly started two entries while HA's domain
+bootstrap also initialized the second one. The test now calls the public
+`async_setup_component` once, letting HA perform its own concurrent entry setup,
+then asserts both entries loaded and exactly one batched request. Production
+polling/initialization behavior is unchanged; this is not hidden by retrying CI.
+The focused startup test passed five consecutive local runs, followed by passing
+`mise run check` with 158 tests and full integration coverage on both HA versions.

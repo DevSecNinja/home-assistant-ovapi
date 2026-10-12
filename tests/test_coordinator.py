@@ -7,7 +7,9 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.helpers import entity_registry as er
+from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
@@ -32,13 +34,11 @@ async def test_concurrent_setup_batches(hass, api, payload, freezer):
     second = make_entry(hass, stop="76543210", name="Amsterdam Centraal")
     payload["76543210"] = {"Passes": {}}
     api.get("http://v0.ovapi.nl/tpc/01234567,76543210/departures", json=payload)
-    assert all(
-        await asyncio.gather(
-            hass.config_entries.async_setup(first.entry_id),
-            hass.config_entries.async_setup(second.entry_id),
-        )
-    )
+    # Domain bootstrap already sets up its entries concurrently.
+    assert await async_setup_component(hass, "ovapi", {})
     await hass.async_block_till_done()
+    assert first.state is ConfigEntryState.LOADED
+    assert second.state is ConfigEntryState.LOADED
     assert api.call_count == 1
     assert first.runtime_data is second.runtime_data
     for _ in range(10):
