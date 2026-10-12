@@ -4,49 +4,128 @@
       "user": {
         "title": "OVAPI-favoriet toevoegen",
         "description": "Zoek een halte op plaats en naam. Kies daarna het haltebord of de richting. OVAPI gebruikt openbaar, onversleuteld HTTP; de dekking verschilt. Gebruik voor NS-treinen de aparte integratie Nederlandse Spoorwegen.",
-        "menu_options": {"search": "Halte zoeken op naam", "manual": "Haltecode invoeren (geavanceerd)"},
-        "data": {"name": "Naam favoriet", "stop_id": "Haltecode", "lines": "Lijnen", "destination": "Bestemming bevat", "walking_minutes": "Looptijd (minuten)"},
-        "data_description": {"name": "Je eigen naam, bijvoorbeeld Amsterdam Amstel.", "stop_id": "1-10 cijfers; behoud voorloopnullen.", "lines": "Optioneel: openbare lijnnummers, gescheiden door komma's.", "destination": "Optionele tekst in de bestemming; hoofdletters maken niet uit.", "walking_minutes": "De bijbehorende kaarten berekenen hiermee wanneer je moet vertrekken."}
+        "menu_options": {
+          "search": "Halte zoeken op naam",
+          "manual": "Haltecode invoeren (geavanceerd)"
+        },
+        "data": {
+          "name": "Naam favoriet",
+          "stop_id": "Haltecode",
+          "lines": "Alleen deze lijnnummers (optioneel)",
+          "destination": "Bestemming bevat (optioneel)",
+          "walking_minutes": "Looptijd (minuten)",
+          "transport_types": "Vervoermiddelen tonen"
+        },
+        "data_description": {
+          "name": "Je eigen naam, bijvoorbeeld Amsterdam Amstel.",
+          "stop_id": "1-10 cijfers; behoud voorloopnullen.",
+          "lines": "Leeg = alle lijnen. Exacte openbare lijnnummers met komma's, bijvoorbeeld 50, 51. Voeg geen M toe tenzij OVAPI die vermeldt.",
+          "destination": "Leeg = alle bestemmingen. Een tekstfragment, bijvoorbeeld Centraal; geen lijst met komma's.",
+          "walking_minutes": "De bijbehorende kaarten berekenen hiermee wanneer je moet vertrekken.",
+          "transport_types": "Alles is standaard geselecteerd, ook voor nieuwe diensten. Kies minstens een vervoermiddel. Dit bewijst niet dat elk vervoermiddel hier rijdt."
+        }
       },
       "reconfigure": {
         "title": "Favoriet wijzigen",
         "description": "Wijzig de halte, naam of filters. De verbindingscontrole deelt hetzelfde aanvraagbudget.",
-        "menu_options": {"search": "Andere halte zoeken op naam", "manual": "Naam of haltecode wijzigen (geavanceerd)"},
-        "data": {"name": "Naam favoriet", "stop_id": "Haltecode", "lines": "Lijnen", "destination": "Bestemming bevat", "walking_minutes": "Looptijd (minuten)"},
-        "data_description": {"name": "Je eigen naam voor deze favoriet.", "stop_id": "1-10 cijfers, inclusief voorloopnullen.", "lines": "Optionele lijnnummers, gescheiden door komma's.", "destination": "Optionele bestemmingstekst; hoofdletters maken niet uit.", "walking_minutes": "Looptijd voor de lokale vertrekteller."}
+        "menu_options": {
+          "search": "Andere halte zoeken op naam",
+          "manual": "Naam of haltecode wijzigen (geavanceerd)"
+        },
+        "data": {
+          "name": "Naam favoriet",
+          "stop_id": "Haltecode",
+          "lines": "Alleen deze lijnnummers (optioneel)",
+          "destination": "Bestemming bevat (optioneel)",
+          "walking_minutes": "Looptijd (minuten)",
+          "transport_types": "Vervoermiddelen tonen"
+        },
+        "data_description": {
+          "name": "Je eigen naam voor deze favoriet.",
+          "stop_id": "1-10 cijfers, inclusief voorloopnullen.",
+          "lines": "Leeg = alle lijnen. Exacte openbare lijnnummers met komma's, bijvoorbeeld 50, 51. Voeg geen M toe tenzij OVAPI die vermeldt.",
+          "destination": "Leeg = alle bestemmingen. Een tekstfragment, bijvoorbeeld Centraal; geen lijst met komma's.",
+          "walking_minutes": "Looptijd voor de lokale vertrekteller.",
+          "transport_types": "Alles is standaard geselecteerd, ook voor nieuwe diensten. Kies minstens een vervoermiddel. Dit bewijst niet dat elk vervoermiddel hier rijdt."
+        }
       },
       "manual": {
         "title": "Haltecode invoeren",
-        "description": "Geavanceerde invoer voor een bekende code. Behoud voorloopnullen. De controle deelt het aanvraagbudget; wacht na een andere aanvraag minstens twee minuten voordat je opnieuw probeert.",
-        "data": {"name": "Naam favoriet", "stop_id": "Haltecode", "lines": "Lijnen", "destination": "Bestemming bevat", "walking_minutes": "Looptijd (minuten)"}
+        "description": "Gebruik een bekende OVAPI-code voor een haltebord of perron. Behoud voorloopnullen. Extra aanvragen wachten automatisch; je invoer blijft bewaard. Laat lijn- en bestemmingsfilters leeg om gewijzigde diensten te volgen.",
+        "data": {
+          "name": "Naam favoriet",
+          "stop_id": "Haltecode",
+          "lines": "Alleen deze lijnnummers (optioneel)",
+          "destination": "Bestemming bevat (optioneel)",
+          "walking_minutes": "Looptijd (minuten)",
+          "transport_types": "Vervoermiddelen tonen"
+        },
+        "data_description": {
+          "transport_types": "Alles is standaard geselecteerd, ook voor nieuwe diensten. Kies minstens een vervoermiddel. Dit bewijst niet dat elk vervoermiddel hier rijdt.",
+          "lines": "Leeg = alle lijnen. Exacte openbare lijnnummers met komma's, bijvoorbeeld 50, 51. Voeg geen M toe tenzij OVAPI die vermeldt.",
+          "destination": "Leeg = alle bestemmingen. Een tekstfragment, bijvoorbeeld Centraal; geen lijst met komma's."
+        }
       },
-      "directory": {"title": "Haltenamen laden"},
-      "details": {"title": "Halterichtingen laden"},
+      "directory": {
+        "title": "Haltenamen laden"
+      },
+      "details": {
+        "title": "Halterichtingen laden"
+      },
       "search": {
         "title": "Halte zoeken",
         "description": "Voer een plaats en een deel van de haltenaam in, bijvoorbeeld Amsterdam Amstel. Je zoekt in een tijdelijke lokale lijst, zonder aanvraag per toetsaanslag.",
-        "data": {"query": "Plaats of haltenaam", "manual": "Toch een haltecode gebruiken (geavanceerd)"},
+        "data": {
+          "query": "Plaats of haltenaam",
+          "manual": "Toch een haltecode gebruiken (geavanceerd)"
+        },
         "submit": "Zoeken"
       },
       "area": {
         "title": "Halte kiezen",
         "description": "Kies de plaats en haltenaam. Daarna worden beschikbare halteborden of richtingen geladen. Codes onderscheiden gelijke namen.",
-        "data": {"area": "Halte", "search_again": "Zoekopdracht wijzigen"},
+        "data": {
+          "area": "Halte",
+          "search_again": "Zoekopdracht wijzigen"
+        },
         "submit": "Doorgaan"
       },
       "point": {
         "title": "Kies je haltebord",
-        "description": "Kies een haltecode met de namen, lijnen en bestemmingen van OVAPI. Dit zijn voorbeelden van actuele informatie, niet alle diensten. Zonder actuele vertrekinformatie kunnen richting en vervoermiddel onbekend zijn. Een lege vertreklijst betekent niet dat er geen diensten rijden.",
-        "data": {"name": "Naam favoriet", "stop_id": "Haltebord of richting", "lines": "Lijnen", "destination": "Bestemming bevat", "walking_minutes": "Looptijd (minuten)"},
-        "data_description": {"name": "Je eigen naam voor deze favoriet.", "stop_id": "Codes onderscheiden halteborden als beschrijvingen ontbreken.", "lines": "Optionele lijnnummers, gescheiden door komma's.", "destination": "Optionele bestemmingstekst; hoofdletters maken niet uit.", "walking_minutes": "De bijbehorende kaarten berekenen hiermee wanneer je moet vertrekken."}
+        "description": "Kies een haltebord of richting. Nu gemeld bij deze keuzes: {observed_modes}. Een streepje betekent geen actuele informatie over vervoermiddelen, niet dat er niets rijdt. Namen, lijnen en bestemmingen zijn actuele voorbeelden, geen volledige dekking.",
+        "data": {
+          "name": "Naam favoriet",
+          "stop_id": "Haltebord of richting",
+          "lines": "Alleen deze lijnnummers (optioneel)",
+          "destination": "Bestemming bevat (optioneel)",
+          "walking_minutes": "Looptijd (minuten)",
+          "transport_types": "Vervoermiddelen tonen"
+        },
+        "data_description": {
+          "name": "Je eigen naam voor deze favoriet.",
+          "stop_id": "Codes onderscheiden halteborden als beschrijvingen ontbreken.",
+          "lines": "Leeg = alle lijnen. Exacte openbare lijnnummers met komma's, bijvoorbeeld 50, 51. Voeg geen M toe tenzij OVAPI die vermeldt.",
+          "destination": "Leeg = alle bestemmingen. Een tekstfragment, bijvoorbeeld Centraal; geen lijst met komma's.",
+          "walking_minutes": "De bijbehorende kaarten berekenen hiermee wanneer je moet vertrekken.",
+          "transport_types": "Alles is standaard geselecteerd, ook voor nieuwe diensten. Kies minstens een vervoermiddel. Dit bewijst niet dat elk vervoermiddel hier rijdt."
+        }
       },
       "retry": {
         "title": "Halte zoeken vraagt aandacht",
         "description": "Opnieuw proberen wacht automatisch op het gedeelde aanvraagbudget. Je kunt ook opnieuw zoeken of een bekende code invoeren.",
-        "data": {"action": "Volgende stap"}
+        "data": {
+          "action": "Volgende stap"
+        }
+      },
+      "validate": {
+        "title": "Je halte controleren"
       }
     },
-    "progress": {"lookup": "Gegevens laden van OVAPI. Normaal instellen heeft geen verplichte wachttijd. Alle instelvensters delen twee zoekaanvragen per twee minuten; extra aanvragen kunnen wachten. Serverfouten kunnen een langere pauze vereisen. Dit gaat automatisch verder; sluit het scherm om te annuleren."},
+    "progress": {
+      "lookup": "OVAPI controleren. Dit gaat automatisch verder en bewaart je invoer; sluit het scherm om te annuleren.",
+      "budget_wait": "Wachten op het gedeelde zoekbudget, tot minstens {resume_at} (Home Assistant-tijd). Dit is geen limiet op het aantal favorieten. Je invoer blijft bewaard en instellen gaat automatisch verder; sluit het scherm om te annuleren.",
+      "server_pause": "OVAPI vroeg om een pauze of een recente aanvraag mislukte. De volgende controle kan vanaf {resume_at} (Home Assistant-tijd), mogelijk later als een andere aanvraag mislukt. Je invoer blijft bewaard; dit gaat automatisch verder. Sluit het scherm om te annuleren."
+    },
     "error": {
       "reconfigure_in_progress": "Een ander instelvenster wijzigt deze favoriet. Rond dat eerst af of sluit het venster voordat je opnieuw probeert.",
       "short_query": "Voer minstens twee tekens in, of kies geavanceerde code-invoer.",
@@ -64,35 +143,92 @@
       "no_points": "Geen bruikbare haltecodes ontvangen voor dit gebied. Probeer later opnieuw, zoek opnieuw of gebruik een bekende code. Dit betekent niet dat er niets rijdt.",
       "selection_expired": "De tijdelijke haltegegevens zijn verlopen. Probeer opnieuw voor actuele keuzes.",
       "discovery_busy": "Er staan te veel haltezoekopdrachten open. Sluit een ander instelvenster en probeer opnieuw.",
-      "rate_limited": "Het gedeelde aanvraagbudget wacht of OVAPI vraagt om een pauze. Wacht minstens twee minuten.",
-      "too_many_stops": "Er zijn maximaal tien verschillende haltecodes per Home Assistant-installatie toegestaan."
+      "rate_limited": "OVAPI vroeg om een pauze. Verstuur opnieuw om automatisch tot de gedeelde deadline te wachten; je invoer blijft bewaard.",
+      "too_many_stops": "Er zijn maximaal tien verschillende haltecodes per Home Assistant-installatie toegestaan.",
+      "invalid_transport": "Kies minstens een vervoermiddel: bus, tram of metro."
     },
-    "abort": {"already_configured": "Deze combinatie van halte en filters bestaat al.", "reconfigure_successful": "De favoriet is bijgewerkt.", "discovery_busy": "Er staan te veel haltezoekopdrachten open. Sluit een ander instelvenster en probeer opnieuw."}
+    "abort": {
+      "already_configured": "Deze combinatie van halte en filters bestaat al.",
+      "reconfigure_successful": "De favoriet is bijgewerkt.",
+      "discovery_busy": "Er staan te veel haltezoekopdrachten open. Sluit een ander instelvenster en probeer opnieuw."
+    },
+    "create_entry": {
+      "default": "Je vertrekgegevens zijn klaar voor een dashboard. De entiteit toont de status van de gegevensbron, niet de vertrektijden. [Installeer de OVAPI-kaarten in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=DevSecNinja&repository=lovelace-ovapi&category=plugin), voeg een OVAPI-kaart toe en kies de entiteit van deze favoriet. [Handleiding voor de kaarten](https://github.com/DevSecNinja/lovelace-ovapi)."
+    }
   },
-  "selector": {"recovery": {"options": {"retry": "Opnieuw proberen", "search": "Andere halte zoeken", "manual": "Haltecode invoeren (geavanceerd)"}}},
+  "selector": {
+    "recovery": {
+      "options": {
+        "retry": "Opnieuw proberen",
+        "search": "Andere halte zoeken",
+        "manual": "Haltecode invoeren (geavanceerd)"
+      }
+    },
+    "transport": {
+      "options": {
+        "bus": "Bus",
+        "tram": "Tram",
+        "metro": "Metro"
+      }
+    }
+  },
   "options": {
     "step": {
       "init": {
         "title": "Voorkeuren favoriet",
-        "description": "Filters en looptijd verhogen het aantal OVAPI-aanvragen niet.",
-        "data": {"lines": "Lijnen", "destination": "Bestemming bevat", "walking_minutes": "Looptijd (minuten)"},
-        "data_description": {"lines": "Optionele lijnnummers, gescheiden door komma's.", "destination": "Optionele bestemmingstekst; hoofdletters maken niet uit.", "walking_minutes": "De bijbehorende kaarten berekenen hiermee wanneer je moet vertrekken."}
+        "description": "Nu gemeld door de bron: {observed_modes}. Een streepje betekent geen actuele informatie over vervoermiddelen, niet dat er niets rijdt. Filters en looptijd zijn lokaal en doen geen extra aanvragen.",
+        "data": {
+          "lines": "Alleen deze lijnnummers (optioneel)",
+          "destination": "Bestemming bevat (optioneel)",
+          "walking_minutes": "Looptijd (minuten)",
+          "transport_types": "Vervoermiddelen tonen"
+        },
+        "data_description": {
+          "lines": "Leeg = alle lijnen. Exacte openbare lijnnummers met komma's, bijvoorbeeld 50, 51. Voeg geen M toe tenzij OVAPI die vermeldt.",
+          "destination": "Leeg = alle bestemmingen. Een tekstfragment, bijvoorbeeld Centraal; geen lijst met komma's.",
+          "walking_minutes": "De bijbehorende kaarten berekenen hiermee wanneer je moet vertrekken.",
+          "transport_types": "Alles is standaard geselecteerd, ook voor nieuwe diensten. Kies minstens een vervoermiddel. Dit bewijst niet dat elk vervoermiddel hier rijdt."
+        }
       }
     },
-    "error": {"already_configured": "Een andere favoriet heeft deze combinatie van halte en filters al.", "invalid_walk": "Voer een geheel aantal loopminuten van 0 tot 120 in."}
+    "error": {
+      "already_configured": "Een andere favoriet heeft deze combinatie van halte en filters al.",
+      "invalid_walk": "Voer een geheel aantal loopminuten van 0 tot 120 in.",
+      "invalid_transport": "Kies minstens een vervoermiddel: bus, tram of metro."
+    }
   },
   "entity": {
     "sensor": {
-      "board": {"name": "Vertrekbord", "state": {"ready": "Actueel", "stale": "Verouderd"}}
+      "board": {
+        "name": "Status vertrekgegevens",
+        "state": {
+          "ready": "Gegevensbron actueel",
+          "stale": "Gegevensbron verouderd"
+        }
+      }
     }
   },
   "exceptions": {
-    "cannot_connect": {"message": "OVAPI is niet bereikbaar; opnieuw proberen gebeurt automatisch."},
-    "unknown_stop": {"message": "OVAPI gaf deze halte niet terug. Controleer de ingestelde code."},
-    "invalid_stop": {"message": "De haltecode is ongeldig."},
-    "invalid_data": {"message": "OVAPI gaf ongeldige gegevens terug; opnieuw proberen gebeurt automatisch."},
-    "response_too_large": {"message": "Het OVAPI-antwoord overschreed de veiligheidslimiet."},
-    "rate_limited": {"message": "Wachten op het gedeelde OVAPI-aanvraagbudget."},
-    "too_many_stops": {"message": "Maximaal tien verschillende haltecodes worden ondersteund."}
+    "cannot_connect": {
+      "message": "OVAPI is niet bereikbaar; opnieuw proberen gebeurt automatisch."
+    },
+    "unknown_stop": {
+      "message": "OVAPI gaf deze halte niet terug. Controleer de ingestelde code."
+    },
+    "invalid_stop": {
+      "message": "De haltecode is ongeldig."
+    },
+    "invalid_data": {
+      "message": "OVAPI gaf ongeldige gegevens terug; opnieuw proberen gebeurt automatisch."
+    },
+    "response_too_large": {
+      "message": "Het OVAPI-antwoord overschreed de veiligheidslimiet."
+    },
+    "rate_limited": {
+      "message": "Wachten op het gedeelde OVAPI-aanvraagbudget."
+    },
+    "too_many_stops": {
+      "message": "Maximaal tien verschillende haltecodes worden ondersteund."
+    }
   }
 }

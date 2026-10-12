@@ -40,13 +40,20 @@ class OvapiStatusSensor(CoordinatorEntity[OvapiCoordinator], SensorEntity):
             name=entry.data["name"],
             entry_type=DeviceEntryType.SERVICE,
             manufacturer="OVAPI",
-            model="Departure board",
-            configuration_url="http://v0.ovapi.nl/",
+            model=f"Timing point {self._stop}",
+            configuration_url=(
+                "https://github.com/DevSecNinja/home-assistant-ovapi#status-and-data"
+            ),
         )
         self._attr_extra_state_attributes = {
             "contract_version": 1,
             "board_id": entry.entry_id,
         }
+
+    @property
+    def suggested_object_id(self) -> str:
+        """Keep the original entity-ID suffix while clarifying the visible name."""
+        return "departure_board"
 
     @property
     def available(self) -> bool:

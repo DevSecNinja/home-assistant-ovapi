@@ -1,7 +1,8 @@
 # OVAPI for Home Assistant
 
 Public-transport departure boards with one shared, conservative request budget.
-Find favourite stops by town/name, set line/destination filters and walking duration,
+Find favourite stops by town/name, select bus/tram/metro, optionally filter
+line/destination and set walking duration,
 then use the [companion Lovelace cards](https://github.com/DevSecNinja/lovelace-ovapi)
 for upcoming departures and local "leave in" countdowns.
 
@@ -47,8 +48,9 @@ manual steps:
 5. Add a favourite as described below. Install the companion cards separately.
 
 No package or release publication is performed by the repository's CI.
-Brand submission to the HA brands repository is still external follow-up; the
-HACS branding check alone is explicitly excluded.
+Original light/dark icons and logos are bundled with the integration and served
+locally by Home Assistant. No separate brands submission or UI asset download is
+needed on supported HA versions.
 
 ### Manual / review branch
 
@@ -81,13 +83,14 @@ Progress continues automatically; close the dialog to cancel. Server failures an
 defers the next ordinary poll, avoiding a redundant immediate request. Only extra
 lookups after a pair can wait for an eligible board refresh to keep polling fair.
 
-| Setting              | Description                                                                                                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Favourite name       | Your label, 1-80 characters; for example Amsterdam Amstel.                                                               |
-| Timing-point code    | 1-10 digits, retaining leading zeros. A timing point is generally one stop sign/platform/direction, not a whole station. |
-| Lines                | Optional comma-separated public line numbers, matched exactly and case-insensitively.                                    |
-| Destination contains | Optional case-insensitive substring filter.                                                                              |
-| Walking time         | 0-120 whole minutes; used by the cards, not sent to OVAPI.                                                               |
+| Setting              | Description                                                                                                                       |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Favourite name       | Your label, 1-80 characters; for example Amsterdam Amstel.                                                                        |
+| Timing-point code    | 1-10 digits, retaining leading zeros. A timing point is generally one stop sign/platform/direction, not a whole station.          |
+| Transport to include | Bus, tram and metro are selected initially. Keep at least one selected. A metro-only board follows new metro lines automatically. |
+| Line numbers         | Blank = all. Optional comma-separated actual public numbers, matched exactly and case-insensitively; do not invent an `M` prefix. |
+| Destination contains | Blank = all. One case-insensitive text fragment, not a comma-separated list.                                                      |
+| Walking time         | 0-120 whole minutes; used by the cards, not sent to OVAPI.                                                                        |
 
 **Enter a timing-point code (advanced)** remains available for known codes.
 Do not assume a national stop identifier is interchangeable with an OVAPI code.
@@ -102,9 +105,9 @@ favourites for one timing point if their filters differ; identical stop/filter
 combinations are rejected even when the display names differ.
 
 Selecting a timing point reuses its acquired board and original expiry, without a
-third validation request. Advanced manual validation still reports cooldown when
-necessary; wait at least two minutes before retrying. The same throttle applies
-to reload/startup retries and manual updates.
+third validation request. Advanced manual checks wait automatically through the
+interactive allowance. Reload/startup retries and manual entity updates keep
+the ordinary background floor.
 Polling is always on while an enabled board entity or card subscription is active;
 there are no travel windows, interval fields, or timing settings to configure.
 
@@ -117,12 +120,50 @@ stored, not the directory, candidates or downloaded departures.
 Removing/renaming the entity in HA's registry is supported; update card YAML if you
 change its entity ID.
 
+Transport choices describe what you want to include, not a guarantee that every
+mode serves a stop. Setup/preferences show current source observations separately.
+No current observations means unknown, not no service. Older favourites without a
+transport setting continue to include all supported modes.
+
+### Manual codes wait automatically too
+
+Manual add/reconfigure shares the same two-request rolling allowance as name
+discovery. Cached stops complete immediately. Uncached checks preserve your
+entered settings and continue through native progress at the eligible deadline;
+closing the dialog cancels unneeded work. There is no two-favourite limit.
+
+The progress text distinguishes a local allowance from a server pause and uses
+the actual deadline, including longer `Retry-After` pauses. If a request itself
+fails, the preserved form shows the error: submit again to wait automatically
+before another attempt. Failures are not retried in an automatic request loop.
+Background startup/reload retries retain their ordinary polling floor.
+
+### Whole-station discovery is not included yet
+
+Each favourite still represents one timing point. OVAPI stop areas can omit
+working metro platforms: Diemen Zuid's area currently exposes buses while its
+known metro timing points exist separately. This update does **not** label that
+bus-only group a complete station or freeze today's lines as station membership.
+Automatic station grouping is tracked in
+[#5](https://github.com/DevSecNinja/home-assistant-ovapi/issues/5), pending a verified
+current station-to-timing-point metadata source. No guessed codes or supplementary
+metadata provider is used.
+
 ## Status and data
+
+The device shows the configured timing-point identity and **Departure feed
+status**. **Feed ready** means the source check succeeded; it is not a departure
+time. Existing entity IDs and their `departure_board` suffix remain unchanged.
+
+[Open the companion cards in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=DevSecNinja&repository=lovelace-ovapi&category=plugin),
+install them, then add an OVAPI card to your dashboard and select this favourite's
+entity. The setup-success screen includes this handoff. Ordinary entity cards
+show only operational status; departures remain on the transient card feed.
 
 | Status      | Meaning                                                                     |
 | ----------- | --------------------------------------------------------------------------- |
-| Ready       | Latest refresh succeeded, including a valid empty board.                    |
-| Stale       | Refresh failed; last successful data is retained until its original expiry. |
+| Feed ready  | Latest refresh succeeded, including a valid empty board.                    |
+| Feed stale  | Refresh failed; last successful data is retained until its original expiry. |
 | Unavailable | No usable source data, entry unloaded, or cached data expired.              |
 
 Cards use expected departure time when available, otherwise the scheduled time,

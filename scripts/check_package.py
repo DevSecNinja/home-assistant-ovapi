@@ -8,6 +8,7 @@ from pathlib import Path
 
 import yaml
 from packaging.version import InvalidVersion, Version
+from PIL import Image
 
 from scripts.check_compatibility import check_compatibility
 
@@ -70,14 +71,14 @@ def keys(value: object, prefix: str = "") -> set[str]:
     }
 
 
-def main() -> None:
+def main(profile: str = "dev", destination: Path = Path("dist/ovapi.zip")) -> None:
     manifest = json.loads((ROOT / "manifest.json").read_text())
     assert manifest["domain"] == ROOT.name
     assert manifest["config_flow"] is True
     assert manifest["iot_class"] == "cloud_polling"
     check_release_versions()
     assert manifest["requirements"] == []
-    check_compatibility()
+    check_compatibility(profile)
     strings = json.loads((ROOT / "strings.json").read_text())
     assert json.loads((ROOT / "translations/en.json").read_text()) == strings
     assert keys(json.loads((ROOT / "translations/nl.json").read_text())) == keys(
@@ -86,10 +87,22 @@ def main() -> None:
     assert yaml.safe_load((ROOT / "quality_scale.yaml").read_text())["rules"]
     for module in ROOT.glob("*.py"):
         ast.parse(module.read_text(), filename=str(module))
+    for dark in ("", "dark_"):
+        for kind in ("icon", "logo"):
+            for suffix, size in (("", 256), ("@2x", 512)):
+                path = ROOT / "brand" / f"{dark}{kind}{suffix}.png"
+                with Image.open(path) as image:
+                    assert image.format == "PNG"
+                    assert image.height == size
+                    assert image.width == (size if kind == "icon" else size * 7 // 2)
+                    assert image.mode == "RGBA"
+                    image.verify()
     files = sorted(
-        path for path in ROOT.rglob("*") if path.suffix in {".py", ".json", ".yaml"}
+        path
+        for path in ROOT.rglob("*")
+        if path.suffix in {".py", ".json", ".yaml"}
+        or (path.parent == ROOT / "brand" and path.suffix == ".png")
     )
-    destination = Path("dist/ovapi.zip")
     destination.parent.mkdir(exist_ok=True)
     with zipfile.ZipFile(destination, "w", zipfile.ZIP_DEFLATED) as archive:
         for path in files:

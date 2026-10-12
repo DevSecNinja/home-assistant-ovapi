@@ -23,6 +23,7 @@ from .const import (
     CONF_DESTINATION,
     CONF_LINES,
     CONF_STOP,
+    CONF_TRANSPORTS,
     CONF_WALK,
     DISCOVERY_REQUESTS,
     DISCOVERY_WINDOW_SECONDS,
@@ -32,6 +33,7 @@ from .const import (
     MAX_STOPS,
     POLL_SECONDS,
     RETENTION_SECONDS,
+    SUPPORTED_TRANSPORTS,
 )
 from .discovery import MAX_LOOKUPS, StopArea, TimingPoint
 
@@ -94,7 +96,11 @@ def identity(stop: str, options: dict[str, Any]) -> str:
     """Canonical identity excludes presentation-only name and walking duration."""
     lines = ",".join(normalized_lines(options.get(CONF_LINES, "")))
     destination = options.get(CONF_DESTINATION, "").strip().casefold()
-    return json.dumps([stop, lines, destination], ensure_ascii=True)
+    modes = sorted(options.get(CONF_TRANSPORTS, SUPPORTED_TRANSPORTS))
+    parts = [stop, lines, destination]
+    if set(modes) != set(SUPPORTED_TRANSPORTS):
+        parts.append(",".join(modes))
+    return json.dumps(parts, ensure_ascii=True)
 
 
 class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
@@ -123,8 +129,11 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
         self._lookups_since_poll = 0
         self._backoff_until = 0.0
         self._pending: set[str] = set()
+        self._pending_counts: Counter[str] = Counter()
         self._reservations: dict[str, StopReservation] = {}
         self._inflight: asyncio.Task[dict[str, str]] | None = None
+        self._validation_task: asyncio.Task[dict[str, str]] | None = None
+        self._validation_waiters: dict[asyncio.Task[dict[str, str]], int] = {}
         self._expiry_cancel: Callable[[], None] | None = None
         self._next_request = 0.0
         self._failures = 0
@@ -172,18 +181,18 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
         # Only one unique old point can back each new point. A shrinking edit
         # cannot lend its future free slot to another flow before it commits.
         for target in targets - counts.keys():
-            for item in reservations.values():
-                old = (
-                    entries.get(item.replacing) if item.replacing is not None else None
-                )
-                if (
-                    item.stop == target
-                    and old is not None
-                    and counts[old] == 1
-                    and old not in targets
-                ):
-                    released.add(old)
-                    break
+            backing = [
+                (entries.get(item.replacing) if item.replacing is not None else None)
+                for item in reservations.values()
+                if item.stop == target
+            ]
+            # Every claimant must carry its own replacement credit, including
+            # whichever claimant remains after the others abort.
+            if any(
+                old is None or counts[old] != 1 or old in targets for old in backing
+            ):
+                continue
+            released.update(old for old in backing[:1] if old is not None)
         prospective = (
             (set(counts) - released) | targets | (self._pending - set(entries.values()))
         )
@@ -243,6 +252,7 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
         *,
         reservation_id: str | None = None,
         replacing: str | None = None,
+        interactive: bool = False,
     ) -> None:
         """Validate through the same cache/budget, never a second client."""
         token = None
@@ -252,10 +262,17 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
             self.reserve_stop(token, stop, replacing)
             reservation = self._reservations[token]
         success = False
+        pending = False
         try:
             if self._get_board(stop) is None:
+                pending = True
+                self._pending_counts[stop] += 1
                 self._pending.add(stop)
-                errors = await self._refresh()
+                errors = (
+                    await self._validate_interactively(stop)
+                    if interactive
+                    else await self._refresh()
+                )
                 if reservation_id is not None and (
                     self._reservations.get(reservation_id) is not reservation
                 ):
@@ -264,7 +281,11 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
                     raise ApiError(errors.get(stop, "rate_limited"))
             success = True
         finally:
-            self._pending.discard(stop)
+            if pending:
+                self._pending_counts[stop] -= 1
+                if not self._pending_counts[stop]:
+                    self._pending_counts.pop(stop)
+                    self._pending.discard(stop)
             if (
                 token is not None
                 and (reservation_id is None or not success)
@@ -277,6 +298,45 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
     async def _async_update_data(self) -> dict[str, Status]:
         await self._refresh()
         return self.statuses()
+
+    async def _validate_interactively(self, stop: str) -> dict[str, str]:
+        while True:
+            if self._validation_task is None or self._validation_task.done():
+                self._validation_task = self.hass.async_create_background_task(
+                    self._fetch_validation(), "ovapi interactive validation"
+                )
+            task = self._validation_task
+            self._validation_waiters[task] = self._validation_waiters.get(task, 0) + 1
+            try:
+                errors = await asyncio.shield(task)
+            finally:
+                self._validation_waiters[task] -= 1
+                if not self._validation_waiters[task]:
+                    self._validation_waiters.pop(task)
+                    if self._validation_task is task:
+                        self._validation_task = None
+                    if not task.done():
+                        task.cancel()
+            if (
+                stop in errors
+                or self._get_board(stop) is not None
+                or stop not in self._pending
+            ):
+                return errors
+            # A caller arriving after dispatch joins the next eligible batch.
+            # Failed requests return above; this never retries a source failure.
+
+    async def _fetch_validation(self) -> dict[str, str]:
+        await asyncio.sleep(0)
+        async with self._request_lock:
+            await self._wait_for_budget()
+            if (
+                self._lookups_since_poll == DISCOVERY_REQUESTS
+                and self._configured_stops()
+            ):
+                # The fair ordinary batch also satisfies pending manual validation.
+                return await self._perform_batch()
+            return await self._perform_batch(interactive=True)
 
     async def _refresh(self) -> dict[str, str]:
         if self._inflight is None:
@@ -298,7 +358,7 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
         async with self._request_lock:
             return await self._perform_batch()
 
-    async def _perform_batch(self) -> dict[str, str]:
+    async def _perform_batch(self, *, interactive: bool = False) -> dict[str, str]:
         stops = self._configured_stops() | self._pending
         if len(stops) > MAX_STOPS:
             replacing = {
@@ -313,11 +373,14 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
             }
             # Keep the old board cached, but validate its replacement in this batch.
             stops = retained | self._pending
-        if not stops or time.monotonic() < self._next_request:
+        if not stops or (not interactive and time.monotonic() < self._next_request):
             return {}
         started = time.monotonic()
         self._next_request = started + POLL_SECONDS
-        self._lookups_since_poll = 0
+        if interactive:
+            self._record_lookup(started)
+        else:
+            self._lookups_since_poll = 0
         self.request_count += 1
         previous_error = self._error
         errors: dict[str, str] = {}
@@ -418,6 +481,22 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
             ready = max(ready, self._next_request)
         return ready
 
+    def lookup_wait(self) -> tuple[str, datetime]:
+        now = time.monotonic()
+        ready = self._lookup_ready_at()
+        action = (
+            "server_pause"
+            if self._backoff_until > now
+            else "budget_wait"
+            if ready > now
+            else "lookup"
+        )
+        return action, dt_util.utcnow() + timedelta(seconds=max(0, ready - now))
+
+    def _record_lookup(self, started: float) -> None:
+        self._lookup_starts.append(started)
+        self._lookups_since_poll = min(DISCOVERY_REQUESTS, self._lookups_since_poll + 1)
+
     async def _wait_for_budget(self) -> None:
         while (remaining := self._lookup_ready_at() - time.monotonic()) > 0:
             ready: asyncio.Future[None] = asyncio.get_running_loop().create_future()
@@ -444,10 +523,7 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
                 await self._perform_batch()
                 await self._wait_for_budget()
             started = time.monotonic()
-            self._lookup_starts.append(started)
-            self._lookups_since_poll = min(
-                DISCOVERY_REQUESTS, self._lookups_since_poll + 1
-            )
+            self._record_lookup(started)
             self._next_request = max(self._next_request, started + POLL_SECONDS)
             self.request_count += 1
             try:
@@ -554,12 +630,14 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
         board = self._get_board(stop) if entry.entry_id in self.entries else None
         lines = normalized_lines(entry.options.get(CONF_LINES, ""))
         destination = entry.options.get(CONF_DESTINATION, "").strip().casefold()
+        modes = entry.options.get(CONF_TRANSPORTS, SUPPORTED_TRANSPORTS)
         now = dt_util.utcnow()
         departures = (
             [
                 departure.as_payload()
                 for departure in board.departures
                 if departure.departure_at >= now
+                and departure.transport in modes
                 and (not lines or departure.line.casefold() in lines)
                 and destination in departure.destination.casefold()
             ][:MAX_DEPARTURES]
@@ -578,10 +656,20 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
             "departures": departures,
         }
 
+    def observed_transports(self, stop: str) -> tuple[str, ...]:
+        board = self._get_board(stop)
+        return (
+            tuple(sorted({departure.transport for departure in board.departures}))
+            if board
+            else ()
+        )
+
     async def async_shutdown(self) -> None:
         await super().async_shutdown()
         if self._inflight is not None:
             self._inflight.cancel()
+        if self._validation_task is not None:
+            self._validation_task.cancel()
         for task in self._lookup_tasks.values():
             task.cancel()
         if self._expiry_cancel is not None:

@@ -19,3 +19,5 @@ CONF_STOP = "stop_id"
 CONF_LINES = "lines"
 CONF_DESTINATION = "destination"
 CONF_WALK = "walking_minutes"
+CONF_TRANSPORTS = "transport_types"
+SUPPORTED_TRANSPORTS = ("bus", "tram", "metro")

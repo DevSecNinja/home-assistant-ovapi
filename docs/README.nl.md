@@ -23,6 +23,8 @@ voeg OVAPI toe via **Instellingen > Apparaten & diensten**.
 
 Handmatig: kopieer alleen `custom_components/ovapi` uit de gewenste branch naar
 de configuratiemap van Home Assistant en herstart.
+Eigen lichte/donkere pictogrammen en logo's worden meegeleverd en lokaal door
+Home Assistant getoond; een aparte brands-aanmelding is niet nodig.
 
 Kies **Halte zoeken op naam**, voer een plaats en een deel van de haltenaam in en
 kies de passende **plaats - haltenaam**. Kies daarna je haltebord of richting met
@@ -47,6 +49,23 @@ Per favoriet stel je een eigen naam, optionele lijnnummers/bestemming en looptij
 (0-120 minuten) in. **Haltecode invoeren (geavanceerd)** blijft beschikbaar voor
 bekende codes van 1-10 cijfers, inclusief voorloopnullen. Maximaal tien
 verschillende haltecodes delen het budget.
+
+**Vervoermiddelen tonen** selecteert standaard bus, tram en metro. Kies minstens
+een vervoermiddel; alles uitvinken geeft een duidelijke fout, niet opnieuw alles.
+Alleen metro blijft ook nieuwe metrolijnen tonen. De genoemde bronwaarnemingen
+zijn actuele voorbeelden, geen garantie dat elk vervoermiddel hier rijdt.
+Oude favorieten zonder deze instelling blijven alle ondersteunde soorten tonen.
+Laat **lijnnummers** leeg voor alle lijnen, of gebruik exacte openbare nummers met
+komma's, bijvoorbeeld `50, 51`; voeg geen `M` toe als OVAPI die niet vermeldt.
+**Bestemming bevat** is één tekstfragment, geen lijst met komma's; leeg is alles.
+
+Ook handmatige code-invoer en herconfiguratie wachten automatisch op hetzelfde
+zoekbudget. Een derde ongecachete controle kan wachten; dit is geen limiet van
+twee favorieten. Invoer blijft bewaard en de voortgang toont de echte deadline,
+met onderscheid tussen lokaal budget en een serverpauze. Gecachete haltes gaan
+direct door. Sluiten annuleert onnodig werk. Mislukt de aanvraag zelf, dan blijft
+het formulier met foutmelding staan: verstuur opnieuw om automatisch tot de
+volgende toegestane poging te wachten. Er is geen automatische herhaallus bij fouten.
 
 De namenlijst wordt alleen op verzoek opgehaald; vertrekgegevens uitsluitend voor
 het gekozen haltegebied. Voorbeelden van lijnen/richtingen zijn geen volledige
@@ -73,10 +92,26 @@ voorkeuren blijven behouden. Keuzes verlopen binnen 29 minuten; daarna laad je
 nieuwe gegevens. Alleen je gekozen naam, code en voorkeuren worden opgeslagen.
 De gekozen halte hergebruikt de opgehaalde gegevens zonder derde controleaanvraag.
 
+**Hele stations automatisch toevoegen is nog niet beschikbaar.** Een favoriet
+blijft één haltecode. Bij Diemen Zuid bevat het OVAPI-haltegebied alleen bussen,
+terwijl werkende metrohaltes apart beschikbaar zijn. Deze update doet niet alsof
+dat busgebied het volledige station is. Automatische stationsgroepering staat in
+[#5](https://github.com/DevSecNinja/home-assistant-ovapi/issues/5), in afwachting van
+een gecontroleerde actuele bron die stations aan haltecodes koppelt. Er worden
+geen codes geraden en geen extra metadatabronnen geïnstalleerd.
+
 ## Actueel, verouderd en niet beschikbaar
 
-- **Actueel**: de laatste aanvraag lukte. Een geldig leeg bord is ook actueel.
-- **Verouderd**: de aanvraag mislukte, maar vorige gegevens zijn nog niet verlopen.
+Het apparaat toont de gekozen haltecode en **Status vertrekgegevens**.
+**Gegevensbron actueel** is de toestand van de bron, niet een vertrektijd.
+Bestaande entiteit-ID's en het achtervoegsel `departure_board` blijven behouden.
+[Open de OVAPI-kaarten in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=DevSecNinja&repository=lovelace-ovapi&category=plugin),
+installeer ze, voeg een OVAPI-kaart aan je dashboard toe en kies de entiteit van
+je favoriet. Ook het scherm na instellen verwijst hiernaar. Een gewone
+entiteitenkaart toont alleen de status.
+
+- **Gegevensbron actueel**: de laatste aanvraag lukte. Een geldig leeg bord is ook actueel.
+- **Gegevensbron verouderd**: de aanvraag mislukte, maar vorige gegevens zijn nog niet verlopen.
 - **Niet beschikbaar**: er zijn geen bruikbare gegevens of de bewaartermijn is voorbij.
 
 Onbekende voorspellingen/uitval blijven onbekend. Geannuleerde ritten geven geen

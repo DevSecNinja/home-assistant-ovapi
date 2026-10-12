@@ -468,6 +468,9 @@ async def test_http_manual_options_and_reconfigure(hass, hass_client, api, paylo
     assert (await response.json())["step_id"] == "manual"
     response = await client.post(url, json={"name": "Favourite", "stop_id": "01234567"})
     assert response.status == 200
+    assert (await response.json())["type"] == "progress"
+    await settle()
+    response = await client.post(url, json={})
     assert (await response.json())["type"] == "create_entry"
     entry = hass.config_entries.async_entries("ovapi")[0]
     response = await client.post(

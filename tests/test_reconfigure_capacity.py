@@ -5,13 +5,14 @@ import asyncio
 import pytest
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.data_entry_flow import UnknownFlow
+from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
 
 from custom_components.ovapi.client import ApiError
 from custom_components.ovapi.coordinator import get_coordinator
 
+from .test_config_flow import finish_progress
 from .test_discovery import DIRECTORY
 from .test_discovery_coordinator import settle
 from .test_init import make_entry
@@ -153,6 +154,7 @@ async def test_manual_reconfiguration_capacity_and_failure(hass, api, freezer, s
         },
         data={"name": "Manual replacement", "stop_id": TARGET},
     )
+    result = await finish_progress(hass, result)
     await hass.async_block_till_done()
     if status == 200:
         assert result.get("reason") == "reconfigure_successful"
@@ -204,6 +206,89 @@ async def test_uncommitted_shrinking_edits_do_not_free_capacity(hass, api):
     assert len(coordinator._cache) == coordinator.stop_count == 10
 
 
+@pytest.mark.parametrize("add_first", [False, True])
+async def test_same_target_add_cannot_borrow_replacement_slot(hass, api, add_first):
+    entry = await prepare(hass, api)
+    coordinator = get_coordinator(hass)
+    if add_first:
+        with pytest.raises(ApiError, match="too_many_stops"):
+            coordinator.reserve_stop("add", TARGET)
+    coordinator.reserve_stop("replace", TARGET, entry.entry_id)
+    with pytest.raises(ApiError, match="too_many_stops"):
+        coordinator.reserve_stop("add", TARGET)
+    coordinator.release_stop("replace")
+    assert not coordinator._reservations
+    assert coordinator.stop_count == 10
+
+
+@pytest.mark.parametrize("expire", [False, True])
+async def test_same_target_add_after_aborted_picker_keeps_ten_stops(
+    hass, api, freezer, expire
+):
+    from .test_coordinator import tick
+
+    entry = await prepare(hass, api)
+    coordinator = get_coordinator(hass)
+    original = coordinator._cache[CODES[0]]
+    flow_id = await picker(hass, api, entry)
+    result = await hass.config_entries.flow.async_configure(
+        flow_id, {"name": " ", "stop_id": TARGET}
+    )
+    assert result["errors"] == {"name": "invalid_name"}
+    add_result = await hass.config_entries.flow.async_init(
+        "ovapi",
+        context={"source": config_entries.SOURCE_USER},
+        data={"name": "Concurrent add", "stop_id": TARGET},
+    )
+    assert add_result["errors"]["base"] == "too_many_stops"
+    if expire:
+        await tick(hass, freezer, 1740)
+    else:
+        hass.config_entries.flow.async_abort(flow_id)
+        assert coordinator._cache[CODES[0]] is original
+    assert TARGET not in coordinator._cache
+    assert (
+        coordinator.stop_count == len(hass.config_entries.async_entries("ovapi")) == 10
+    )
+    hass.config_entries.flow.async_abort(add_result["flow_id"])
+    if expire:
+        hass.config_entries.flow.async_abort(flow_id)
+    assert not coordinator._reservations
+    assert api.call_count == 3
+
+
+async def test_same_target_shared_old_claim_cannot_borrow_credit(hass, api):
+    entry = await prepare(hass, api)
+    other = hass.config_entries.async_entries("ovapi")[1]
+    make_entry(hass, stop=other.data["stop_id"], lines="X1")
+    coordinator = get_coordinator(hass)
+    coordinator.reserve_stop("unique", TARGET, entry.entry_id)
+    with pytest.raises(ApiError, match="too_many_stops"):
+        coordinator.reserve_stop("shared", TARGET, other.entry_id)
+    coordinator.release_stop("unique")
+    assert not coordinator._reservations
+
+
+@pytest.mark.parametrize("add_first", [False, True])
+async def test_same_target_with_real_spare_capacity_survives_abort(
+    hass, api, add_first
+):
+    entries = [make_entry(hass, stop=code) for code in CODES[:9]]
+    coordinator = get_coordinator(hass)
+    if add_first:
+        coordinator.reserve_stop("add", TARGET)
+    coordinator.reserve_stop("replace", TARGET, entries[0].entry_id)
+    if not add_first:
+        coordinator.reserve_stop("add", TARGET)
+    with pytest.raises(ApiError, match="too_many_stops"):
+        coordinator.reserve_stop("another_add", "08888888")
+    coordinator.release_stop("replace")
+    coordinator.reserve_stop("add", TARGET)
+    coordinator.release_stop("add")
+    assert not coordinator._reservations
+    assert coordinator.stop_count == 9
+
+
 async def test_concurrent_manual_replacements_batch_at_capacity(hass, api, freezer):
     first = await prepare(hass, api)
     second = hass.config_entries.async_entries("ovapi")[1]
@@ -213,19 +298,30 @@ async def test_concurrent_manual_replacements_batch_at_capacity(hass, api, freez
         f"http://v0.ovapi.nl/tpc/{','.join(codes)}/departures",
         json={code: {"Passes": {}} for code in codes},
     )
+    flows = []
+    for entry in (first, second):
+        result = await hass.config_entries.flow.async_init(
+            "ovapi",
+            context={
+                "source": config_entries.SOURCE_RECONFIGURE,
+                "entry_id": entry.entry_id,
+            },
+        )
+        await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "manual"}
+        )
+        flows.append(result["flow_id"])
     freezer.tick(120)
     results = await asyncio.gather(
         *(
-            hass.config_entries.flow.async_init(
-                "ovapi",
-                context={
-                    "source": config_entries.SOURCE_RECONFIGURE,
-                    "entry_id": entry.entry_id,
-                },
-                data={"name": "Replacement", "stop_id": target},
+            hass.config_entries.flow.async_configure(
+                flow_id, {"name": "Replacement", "stop_id": target}
             )
-            for entry, target in zip((first, second), targets, strict=True)
+            for flow_id, target in zip(flows, targets, strict=True)
         )
+    )
+    results = await asyncio.gather(
+        *(finish_progress(hass, result) for result in results)
     )
     await hass.async_block_till_done()
     assert all(result.get("reason") == "reconfigure_successful" for result in results)
@@ -235,8 +331,9 @@ async def test_concurrent_manual_replacements_batch_at_capacity(hass, api, freez
     assert api.call_count == 2
 
 
+@pytest.mark.parametrize("abort", [False, True])
 async def test_abort_inflight_manual_replacement_cannot_restore_target(
-    hass, api, freezer
+    hass, api, freezer, abort
 ):
     from pytest_homeassistant_custom_component.test_util.aiohttp import (
         AiohttpClientMockResponse,
@@ -252,7 +349,10 @@ async def test_abort_inflight_manual_replacement_cannot_restore_target(
         started.set()
         await finish.wait()
         return AiohttpClientMockResponse(
-            method, url, json={code: {"Passes": {}} for code in codes}
+            method,
+            url,
+            status=200 if abort else 503,
+            json={code: {"Passes": {}} for code in codes},
         )
 
     api.get(
@@ -274,10 +374,20 @@ async def test_abort_inflight_manual_replacement_cannot_restore_target(
         )
     )
     await started.wait()
-    hass.config_entries.flow.async_abort(flow_id)
+    with pytest.raises(ApiError, match="too_many_stops"):
+        coordinator.reserve_stop("concurrent_add", TARGET)
+    if abort:
+        hass.config_entries.flow.async_abort(flow_id)
     finish.set()
-    with pytest.raises(UnknownFlow):
-        await task
+    progress = await task
+    if abort:
+        assert progress["type"] is FlowResultType.SHOW_PROGRESS
+    else:
+        assert (await finish_progress(hass, progress))["errors"][
+            "base"
+        ] == "cannot_connect"
+        hass.config_entries.flow.async_abort(flow_id)
+    await settle()
     assert entry.data["stop_id"] == CODES[0]
     assert coordinator._cache[CODES[0]] is original
     assert TARGET not in coordinator._cache
