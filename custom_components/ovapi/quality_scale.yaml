@@ -1,0 +1,93 @@
+---
+rules:
+  action-setup:
+    status: exempt
+    comment: No custom service actions; WebSocket command registered in async_setup.
+  appropriate-polling:
+    status: done
+    comment: Shared 120-second floor, batched cache and backoff; test_coordinator.py.
+  brands:
+    status: todo
+    comment: Separate HA brands submission is external follow-up; no official tier claimed.
+  common-modules: done
+  config-flow-test-coverage: done
+  config-flow: done
+  dependency-transparency:
+    status: done
+    comment: No new runtime dependencies; bundled isolated aiohttp client documented.
+  docs-actions:
+    status: done
+    comment: README explicitly states no custom actions.
+  docs-triggers:
+    status: done
+    comment: README documents only standard HA state triggers.
+  docs-conditions:
+    status: done
+    comment: No custom conditions; ordinary HA conditions remain available.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  entity-event-setup: done
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done
+  test-before-configure: done
+  test-before-setup: done
+  unique-config-entry: done
+  action-exceptions:
+    status: exempt
+    comment: No custom service actions.
+  config-entry-unloading: done
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
+  entity-unavailable: done
+  integration-owner: done
+  log-when-unavailable: done
+  parallel-updates: done
+  reauthentication-flow:
+    status: exempt
+    comment: Public unauthenticated API; no credentials.
+  test-coverage:
+    status: done
+    comment: CI gates every module above 95% statements and branches; flows 100%.
+  devices: done
+  diagnostics: done
+  discovery-update-info:
+    status: exempt
+    comment: Fixed upstream endpoint; no discovery or device network configuration.
+  discovery:
+    status: exempt
+    comment: Explicit favourites; no discoverable local device or full-feed scrape.
+  docs-data-update: done
+  docs-examples: done
+  docs-known-limitations: done
+  docs-supported-devices: done
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices:
+    status: exempt
+    comment: Each favourite is explicitly added as a config entry, not a discovered fleet.
+  entity-category:
+    status: exempt
+    comment: The single status sensor is the primary output, not a diagnostic-only extra.
+  entity-device-class: done
+  entity-disabled-by-default:
+    status: exempt
+    comment: Only the primary status entity is provided; no noisy optional entities.
+  entity-translations: done
+  exception-translations: done
+  icon-translations: done
+  reconfiguration-flow: done
+  repair-issues:
+    status: exempt
+    comment: Transient source errors retry automatically; unknown codes use translated setup errors and reconfigure, not a
+      hardware repair wizard.
+  stale-devices:
+    status: exempt
+    comment: No discovered devices; HA removes service devices with their favourite config entry.
+  async-dependency:
+    status: done
+    comment: Bundled client is async; independent library extraction remains a Core prerequisite.
+  inject-websession: done
+  strict-typing: done
