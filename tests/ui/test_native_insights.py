@@ -18,6 +18,7 @@ from homeassistant.util import dt as dt_util
 from tests.test_combined import create_combined, entity_id
 from tests.test_init import make_entry
 from tests.test_insights import assert_counts, insight, insight_id
+from tests.ui.network import is_test_origin
 
 pytestmark = [pytest.mark.frontend, pytest.mark.enable_socket]
 
@@ -159,7 +160,7 @@ async def native_insights(
             "**/*",
             lambda route: (
                 route.continue_()
-                if route.request.url.startswith(url)
+                if is_test_origin(route.request.url, url)
                 else route.abort()
             ),
         )

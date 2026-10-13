@@ -132,3 +132,57 @@ the parent owns native Copilot review and readiness.
 No merge, release,
 version bump, automatic-station work, HACS store-icon change or main-branch CI
 trigger is part of this delivery.
+
+## Native review correction: exact browser origin
+
+Native Copilot review on source `dde2c117` reported
+[finding 4256960761](https://github.com/DevSecNinja/home-assistant-ovapi/pull/8#discussion_r4256960761).
+The coordinator accepted it: a raw URL-prefix check allowed a credential-style
+URL or prefix-lookalike port to pass the browser HTTP allowlist.
+
+The test-only fix replaces all three copied guards (insights, combined and
+picker) with `tests/ui/network.py`'s parsed exact-origin predicate using the
+existing `yarl.URL`. Scheme, host and port must match; userinfo, non-HTTP(S) and
+invalid URLs are denied. There is no integration/product/bundle change.
+
+`tests/test_browser_origin.py` exercises **31 pure-string cases** with sockets
+disabled, including the credential-style bypass, hostname/port lookalikes,
+wrong scheme/port, normal assets/queries, relative/non-HTTP URLs and malformed
+request/base origins. Five cases failed against the copied prefix implementation
+before the correction. No adversarial URL was navigated to or fetched.
+
+| Exact command                                                                                         | Result after correction                    |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `mise exec -- uv run --locked pytest tests/test_browser_origin.py tests/test_insights.py --no-cov -q` | PASS: 45 cases                             |
+| `mise run test`                                                                                       | PASS: 363 tests, all module coverage gates |
+| `mise run test-minimum`                                                                               | PASS: 363 tests, all module coverage gates |
+| `mise run lint`                                                                                       | PASS                                       |
+| `mise run typecheck`                                                                                  | PASS                                       |
+| `mise run package`                                                                                    | PASS                                       |
+
+All three actual native browser fixtures were rerun with the unchanged
+`299636dd37b6e8ea673d2b56fe9d85d5a6aa8cc00867b166454776b74aac442a`
+card artifact:
+
+```sh
+OVAPI_CARD_BUNDLE="$PWD/.ha-e2e/bundles/leave-card.js" \
+OVAPI_UI_ARTIFACTS=.ha-e2e/review-locked \
+  mise exec -- uv run --locked --group e2e \
+  pytest tests/ui -m frontend --no-cov --timeout=120 -q --tb=short
+```
+
+**PASS: 8 tests**, HA 2026.10.1, both languages; native stop picker, combination
+setup and diagnostic pages plus saved/reopened walking-aware card proof.
+
+```sh
+UV_PROJECT_ENVIRONMENT=.venv-minimum \
+OVAPI_CARD_BUNDLE="$PWD/.ha-e2e/bundles/leave-card.js" \
+OVAPI_UI_ARTIFACTS=.ha-e2e/review-minimum \
+  mise exec -- uv run --locked --no-default-groups --group minimum --group e2e \
+  pytest tests/ui -m frontend --no-cov --timeout=120 -q --tb=short
+```
+
+**PASS: 8 tests**, HA 2026.10.0 with its matching fixture. The committed feature
+screenshots/results are refreshed from these corrected-boundary runs. Native
+values, board-only selection, walking precedence and one-request joint proof
+remain unchanged. The coordinator owns review-thread reply/resolution.

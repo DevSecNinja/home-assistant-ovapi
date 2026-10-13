@@ -61,3 +61,7 @@ documentation and native proof preparation are independent.
 Land one focused PR: establish identity safety, implement walking as smallest
 useful increment, add combination health, then verify passive behavior and native
 surfaces. No release, version bump, merge, automatic station work or new agents.
+
+## Phase 6: Native review correction
+
+- [x] T015 Replace the copied URL-prefix guard consistently across `tests/ui/test_native_insights.py`, `test_native_combined.py` and `test_native_picker.py` using the pure parsed-origin policy in `tests/ui/network.py`; prove invalid/non-HTTP/userinfo/lookalike origins fail closed in `tests/test_browser_origin.py` and rerun both native fixture groups for review finding 4256960761.

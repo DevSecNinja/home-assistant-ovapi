@@ -20,6 +20,7 @@ from custom_components.ovapi.coordinator import get_coordinator
 from tests.test_coordinator import tick
 from tests.test_discovery import DIRECTORY
 from tests.test_discovery_coordinator import settle
+from tests.ui.network import is_test_origin
 
 pytestmark = [pytest.mark.frontend, pytest.mark.enable_socket]
 
@@ -146,7 +147,7 @@ async def test_native_picker(
             "**/*",
             lambda route: (
                 route.continue_()
-                if route.request.url.startswith(url)
+                if is_test_origin(route.request.url, url)
                 else route.abort()
             ),
         )

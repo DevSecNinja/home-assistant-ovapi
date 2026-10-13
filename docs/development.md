@@ -153,6 +153,12 @@ and diagnostic WebSocket rejection. The dashboard override never changes the
 configured walking diagnostic. Artifact JSON records the exact bundle hash,
 public entity values and unchanged synthetic HTTP count.
 
+All three native browser fixtures share `tests/ui/network.py`'s parsed exact-origin
+predicate. Only credential-free HTTP(S) URLs with the fixture's scheme, host and
+port are allowed; invalid/non-HTTP URLs fail closed. `tests/test_browser_origin.py`
+exercises credential-style URLs, prefix-lookalike hosts/ports and malformed
+origins as pure strings with sockets disabled, never by following those URLs.
+
 Do not point development tests at a live HA installation or public OVAPI.
 The companion repository owns the combined browser/HA scenario. To reproduce its
 backend side:
