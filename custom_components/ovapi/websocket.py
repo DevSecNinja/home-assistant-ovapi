@@ -56,6 +56,7 @@ def websocket_subscribe(
         or entity.domain != "sensor"
         or entity.disabled
         or entity.config_entry_id is None
+        or entity.unique_id != entity.config_entry_id
     ):
         connection.send_error(msg["id"], "not_found", "OVAPI board not found")
         return

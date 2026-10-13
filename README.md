@@ -27,7 +27,8 @@ integration has no release publication automation yet.
   engineering choices, not official quotas. See [policy and retention](docs/policy.md).
 - Departure data is ephemeral: **not a normal departure sensor attribute** and not
   available for historical automations, Recorder, statistics or restored state.
-  The only sensor is operational board status. This is an intentional retention
+  Sensors expose operational board status and local configuration/source health.
+  This is an intentional retention
   boundary, not equivalent to full native departure-sensor support.
 
 ## Installation
@@ -63,7 +64,8 @@ into a configuration directory only when intentionally installing.
 
 ## Favourite configuration
 
-Each favourite creates a service device and one status sensor.
+Each favourite creates a service device, one status sensor and read-only local
+diagnostics.
 
 Choose **Find a stop by name**, enter a town and part of the stop name, and select
 the matching **town - stop name**. Then choose your stop sign/direction from the
@@ -192,10 +194,35 @@ The device shows the configured timing-point identity (or manual combination) an
 status**. **Feed ready** means the source check succeeded; it is not a departure
 time. Existing entity IDs and their `departure_board` suffix remain unchanged.
 
+The native device page also shows these default-enabled **Diagnostic** sensors:
+
+| Insight                           | Meaning                                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------------------------- |
+| Configured walking time           | This favourite's configured duration in minutes, including zero.                            |
+| Configured source favourites      | For combinations: all selected source references, including missing/disabled ones.          |
+| Source favourites with ready feed | For combinations: sources with a ready, non-stale feed. A valid empty feed counts as ready. |
+
+For example, one disabled source in a three-source combination leaves **3
+configured** and **2 ready** visible while the departure board is **unavailable**.
+The existing feed status and `unavailable_sources` explain source loss.
+These values remain useful during outages and update locally from existing
+configuration and runtime health. They add **no OVAPI requests**, do not keep
+polling alive when all ordinary leaf boards/viewers are disabled, and manual
+updates only reread local values.
+
+Walking time is display-only here; change it through existing **Configure**
+preferences. A combination uses its **own** configured walking duration, never
+the sum of or an inherited duration from its sources. A card's optional override
+takes precedence on that card only; clearing it returns to the selected
+favourite's duration, and an explicit zero means no walking time. Per-card
+overrides do not change this diagnostic.
+
 [Open the companion cards in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=DevSecNinja&repository=lovelace-ovapi&category=plugin),
 install them, then add an OVAPI card to your dashboard and select this favourite's
-entity. The setup-success screen includes this handoff. Ordinary entity cards
-show only operational status; departures remain on the transient card feed.
+**Departure feed status** entity. Diagnostics are not departure boards and do not
+appear in the card's board picker. The setup-success screen includes this handoff.
+Ordinary entity cards show only status/configuration/source health; departures
+remain on the transient card feed.
 
 | Status      | Meaning                                                                     |
 | ----------- | --------------------------------------------------------------------------- |
@@ -271,7 +298,7 @@ OVAPI can omit stops; a historic code may no longer be served.
 **No departures:** remove filters temporarily and check operator coverage; empty
 or incomplete source data is not necessarily a transport disruption.
 
-**No card data:** use the companion cards, select an OVAPI sensor and check the HA
+**No card data:** use the companion cards, select the OVAPI feed-status sensor and check the HA
 user's entity read permission. Ordinary entity-only cards cannot read the board.
 
 Download integration diagnostics for request count and safe operational limits.

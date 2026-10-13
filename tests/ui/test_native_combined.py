@@ -17,6 +17,7 @@ from homeassistant.util import dt as dt_util
 
 from tests.test_combined import entity_id, setup_sources
 from tests.test_init import make_entry
+from tests.ui.network import is_test_origin
 
 pytestmark = [pytest.mark.frontend, pytest.mark.enable_socket]
 
@@ -119,7 +120,7 @@ async def test_native_combined(
             "**/*",
             lambda route: (
                 route.continue_()
-                if route.request.url.startswith(url)
+                if is_test_origin(route.request.url, url)
                 else route.abort()
             ),
         )

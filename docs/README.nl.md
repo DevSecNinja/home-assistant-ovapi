@@ -140,10 +140,33 @@ geen codes geraden en geen extra metadatabronnen geïnstalleerd.
 Het apparaat toont de gekozen haltecode en **Status vertrekgegevens**.
 **Gegevensbron actueel** is de toestand van de bron, niet een vertrektijd.
 Bestaande entiteit-ID's en het achtervoegsel `departure_board` blijven behouden.
+
+De apparaatpagina toont ook standaard ingeschakelde **Diagnostiek**:
+
+| Inzicht                             | Betekenis                                                                                       |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Ingestelde looptijd                 | De ingestelde minuten van deze favoriet, inclusief nul.                                         |
+| Ingestelde bronfavorieten           | Bij combinaties: alle geselecteerde bronnen, ook ontbrekende of uitgeschakelde.                 |
+| Bronfavorieten met actuele gegevens | Bij combinaties: bronnen met actuele, niet-verouderde gegevens. Een geldige lege bron telt mee. |
+
+Bij één uitgeschakelde bron van drie blijven dus **3 ingesteld** en **2 actueel**
+zichtbaar, terwijl het vertrekbord **niet beschikbaar** is. De bestaande status
+en `unavailable_sources` helpen de oorzaak te vinden. Deze lokale inzichten
+veroorzaken geen OVAPI-aanvragen en houden geen polling actief als alle gewone
+bronborden/kijkers zijn uitgeschakeld. Handmatig verversen leest alleen lokaal.
+
+De looptijd is hier alleen afleesbaar; wijzigen doe je via **Configureren**.
+Een combinatie gebruikt haar **eigen** looptijd, nooit opgetelde of overgenomen
+looptijden van bronnen. Een optionele kaartinstelling overschrijft die waarde
+alleen voor die kaart. Leegmaken herstelt de looptijd van de gekozen favoriet;
+expliciet nul betekent geen looptijd. Dit verandert het lokale inzicht niet.
+
 [Open de OVAPI-kaarten in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=DevSecNinja&repository=lovelace-ovapi&category=plugin),
 installeer ze, voeg een OVAPI-kaart aan je dashboard toe en kies de entiteit van
-je favoriet. Ook het scherm na instellen verwijst hiernaar. Een gewone
-entiteitenkaart toont alleen de status.
+**Status vertrekgegevens** van je favoriet. Diagnostische entiteiten zijn geen
+vertrekborden en staan niet in de kaartkiezer. Ook het scherm na instellen
+verwijst hiernaar. Een gewone entiteitenkaart toont alleen status,
+configuratie en brongezondheid.
 
 - **Gegevensbron actueel**: de laatste aanvraag lukte. Een geldig leeg bord is ook actueel.
 - **Gegevensbron verouderd**: de aanvraag mislukte, maar vorige gegevens zijn nog niet verlopen.
@@ -163,7 +186,7 @@ Er worden geen inloggegevens naar OVAPI gestuurd.
 
 Vertrekgegevens verdwijnen binnen 29 minuten uit het actieve geheugen, ook tijdens
 storingen. Ze komen niet in Recorder, geschiedenis, herstelstatus of diagnostiek.
-De sensor geeft alleen de toestand van het bord; gewone sensorkaarten en historische
+De sensoren tonen alleen bordstatus, configuratie en brongezondheid; gewone vertrekkaarten en historische
 vertrekautomatiseringen zijn daarom niet ondersteund. De gekoppelde GOVI-licentie
 was niet beschikbaar bij controle. Lees de volledige [beleidsnotitie](policy.md).
 

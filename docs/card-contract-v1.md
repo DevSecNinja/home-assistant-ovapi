@@ -21,6 +21,14 @@ capability attributes `contract_version: 1`, `board_id` (configuration entry ID)
 including while unavailable. Departure
 lists are not state attributes. Display names are user-configured.
 
+Only the original feed-status sensor is a board: its registry unique ID equals
+its configuration-entry ID. Additional local diagnostic sensors have suffixed
+unique IDs and **no** `contract_version` or `board_id` capabilities. Card pickers
+must require both capabilities, including on unavailable boards.
+`ovapi/subscribe` explicitly targeting a diagnostic returns `not_found` without
+creating a subscription or fetching data. Existing board read permissions apply
+unchanged.
+
 ## Snapshot
 
 See `tests/fixtures/card-v1.json`, which is entirely synthetic, not real service
@@ -70,6 +78,11 @@ Additive optional fields may be introduced within v1.
 A manual combination is another v1 sensor/feed; select it alone for one card
 board. Its `stop.id` equals its stable configuration-entry ID and `stop.name` is
 the user's combined name. `walking_minutes` belongs to the combination.
+It never inherits or adds source-favourite walking durations. An optional
+per-card walking override takes precedence only for that card; clearing it uses
+the selected board's configured duration again, and zero is a valid override.
+The native **Configured walking time** diagnostic always shows the favourite's
+configuration, not any per-card override.
 Source favourite filters apply before merging, sorting and limiting to thirty
 departures. Only equality of all v1 departure fields permits deduplication.
 

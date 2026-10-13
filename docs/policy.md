@@ -115,8 +115,11 @@ expired choices. A brief native progress step also establishes this subscription
 on cached paths. Flow removal clears labels and cancels pending progress.
 Only explicitly selected stable favourite name/code/options are persisted.
 
-HA state attributes contain only contract version and configuration entry ID, with
-an operational status state. No departure timestamps, routes, destination lists,
+HA states contain operational feed status, configured walking duration and
+configured/ready source-favourite counts. Board attributes contain contract
+version, configuration entry ID and safe source references/health labels;
+diagnostics carry only standard HA metadata. None is a passenger schedule.
+No departure timestamps, routes, destination lists,
 operator data, raw responses or error bodies go to Recorder, restore state,
 diagnostics, logs or files. Consequently, there are no historical departure
 sensors/statistics or native departure-time automations.

@@ -1,0 +1,29 @@
+{
+  "language": "nl",
+  "requests": 1,
+  "card_sha256": "299636dd37b6e8ea673d2b56fe9d85d5a6aa8cc00867b166454776b74aac442a",
+  "sources": 3,
+  "grouped_routes": 3,
+  "diagnostic_ws_rejections": 6,
+  "diagnostics_excluded_from_picker": true,
+  "unavailable_board_in_picker": true,
+  "native_walking_roundtrips": [
+    {
+      "override": null,
+      "effective_walk": 7
+    },
+    {
+      "override": 2,
+      "effective_walk": 2
+    },
+    {
+      "override": null,
+      "effective_walk": 7
+    },
+    {
+      "override": 0,
+      "effective_walk": 0
+    }
+  ],
+  "configured_walking_unchanged": 7
+}

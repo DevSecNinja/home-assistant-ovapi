@@ -73,9 +73,11 @@ actions/triggers/conditions, or network discovery. Users explicitly add/remove
 favourites, rather than discover a changing device fleet. No real physical-device
 health/firmware lifecycle is modeled.
 
-There is only one useful status entity per favourite, enabled by default, with
-enum device class. It is the primary integration output, not a diagnostic-only
-extra. Departure lists cannot be stored as ordinary sensor attributes without
+There is one primary status entity per favourite, enabled by default, with enum
+device class. Additional default-visible diagnostic entities expose configured
+walking duration and, for combinations, configured/ready source-favourite counts.
+They reuse passive listeners and cannot be subscribed to as boards.
+Departure lists cannot be stored as ordinary sensor attributes without
 breaking retention. Therefore historic departure statistics, standard departure
 automations, and entity-only departure cards are intentionally unsupported.
 

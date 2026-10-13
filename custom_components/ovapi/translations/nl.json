@@ -228,6 +228,15 @@
   },
   "entity": {
     "sensor": {
+      "walking_duration": {
+        "name": "Ingestelde looptijd"
+      },
+      "configured_sources": {
+        "name": "Ingestelde bronfavorieten"
+      },
+      "ready_sources": {
+        "name": "Bronfavorieten met actuele gegevens"
+      },
       "board": {
         "name": "Status vertrekgegevens",
         "state": {

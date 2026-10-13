@@ -1,6 +1,9 @@
 {
   "entity": {
     "sensor": {
+      "walking_duration": {"default": "mdi:walk"},
+      "configured_sources": {"default": "mdi:format-list-bulleted"},
+      "ready_sources": {"default": "mdi:check-circle-outline"},
       "board": {"default": "mdi:bus-clock"}
     }
   }
