@@ -14,4 +14,21 @@
     "github>DevSecNinja/.github//.renovate/packageRules.json5",
     "github>DevSecNinja/.github//.renovate/semanticCommits.json5",
   ],
+  packageRules: [
+    {
+      description: "Keep native macOS HA development reproducible until Python 3.15 dependencies are ready",
+      matchManagers: ["mise", "pep621"],
+      matchDepNames: ["python"],
+      allowedVersions: "<3.15",
+    },
+    {
+      description: "Update the exact minimum HA fixture only with the supported floor",
+      matchManagers: ["pep621"],
+      matchFileNames: ["pyproject.toml"],
+      matchPackageNames: ["pytest-homeassistant-custom-component"],
+      matchDepTypes: ["dependency-groups"],
+      matchJsonata: ["managerData.depGroup = 'minimum'"],
+      enabled: false,
+    },
+  ],
 }

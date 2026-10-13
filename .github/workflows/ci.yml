@@ -2,6 +2,9 @@
 name: CI
 on:
   pull_request:
+  push:
+    branches:
+      - main
 permissions:
   contents: read
 concurrency:
@@ -15,7 +18,8 @@ jobs:
       security-events: write
     uses: DevSecNinja/.github/.github/workflows/lint.yml@24acc67adf1be33089e73b2fdbdb4be8c12d145b # v3.2.0
     with:
-      mise-version: "2026.9.15"
+      # renovate: datasource=github-releases depName=jdx/mise
+      mise-version: "2026.9.17"
       lint-fail-on-error: true
       lint-go: false
       lint-yamllint: false
@@ -26,7 +30,7 @@ jobs:
       upload-sarif: false
   backend:
     name: backend (${{ matrix.runtime }})
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -38,9 +42,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
         with:
-          version: "2026.9.15"
+          # renovate: datasource=github-releases depName=jdx/mise
+          version: "2026.9.17"
       - run: mise run install
         if: matrix.runtime == 'locked'
       - run: mise run test
@@ -56,7 +61,7 @@ jobs:
       - run: mise run package
         if: matrix.runtime == 'locked'
   hassfest:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -64,7 +69,7 @@ jobs:
           persist-credentials: false
       - uses: home-assistant/actions/hassfest@06749dd8c0b54f350bc69c8752456cee498808a3 # master 2026-10-12
   hacs:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa # main 2026-10-12
