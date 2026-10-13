@@ -121,6 +121,14 @@ count is added to HA states. Screenshots/logs here contain synthetic data only.
 ruff and types all ran (not skipped). Spec Kit convergence checked all nine
 functional requirements, five success criteria, both user stories and all five
 constitution principles; no implementation gaps or extra tasks were found.
-Hosted PR checks are pending PR creation. No merge, release,
+[Draft PR #8](https://github.com/DevSecNinja/home-assistant-ovapi/pull/8) is open.
+[Hosted CI run 38376264328](https://github.com/DevSecNinja/home-assistant-ovapi/actions/runs/38376264328)
+**PASS** on source head `dde2c117db5a1175b6482e7a638d8f2399291f94`: both backend
+profiles, official HACS and hassfest, and all enabled shared-lint jobs
+(actionlint, dprint, gitleaks, yamlfmt, zizmor). Unrelated shared-workflow scanners
+retain their existing disabled configuration. Source/evidence handoff is complete;
+the parent owns native Copilot review and readiness.
+
+No merge, release,
 version bump, automatic-station work, HACS store-icon change or main-branch CI
 trigger is part of this delivery.
