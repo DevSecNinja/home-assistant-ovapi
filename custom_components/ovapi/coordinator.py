@@ -11,15 +11,33 @@ from datetime import datetime, timedelta
 from typing import Any, Literal, TypedDict
 from uuid import uuid4
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.config_entries import (
+    SIGNAL_CONFIG_ENTRY_CHANGED,
+    ConfigEntry,
+    ConfigEntryChange,
+    ConfigEntryState,
+)
+from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.dispatcher import (
+    async_dispatcher_connect,
+    async_dispatcher_send,
+)
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .client import ApiError, Departure, DeparturePayload, OvapiClient
+from .combined import (
+    combine_snapshots,
+    is_combined,
+    leaf_entry,
+    source_entity,
+    source_ids,
+)
 from .const import (
+    COMBINED_CONTEXT,
     CONF_DESTINATION,
     CONF_LINES,
     CONF_STOP,
@@ -33,6 +51,7 @@ from .const import (
     MAX_STOPS,
     POLL_SECONDS,
     RETENTION_SECONDS,
+    SIGNAL_COMBINED_UPDATE,
     SUPPORTED_TRANSPORTS,
 )
 from .discovery import MAX_LOOKUPS, StopArea, TimingPoint
@@ -118,8 +137,11 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
         self.entries: dict[str, str] = {
             entry.entry_id: entry.data[CONF_STOP]
             for entry in hass.config_entries.async_entries(DOMAIN)
-            if entry.disabled_by is None
+            if entry.disabled_by is None and not is_combined(entry)
         }
+        self._combined: set[str] = set()
+        self._source_unsubs: list[Callable[[], None]] = []
+        self._source_entity_ids: set[str] = set()
         self._cache: dict[str, CachedBoard] = {}
         self._lookups: dict[str, CachedLookup] = {}
         self._lookup_tasks: dict[str, asyncio.Task[None]] = {}
@@ -145,6 +167,22 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
     def stop_count(self) -> int:
         return len(self._configured_stops())
 
+    @callback
+    def async_add_listener(
+        self, update_callback: Callable[[], None], context: Any = None
+    ) -> Callable[[], None]:
+        """Derived views must not keep polling alive when leaf viewers are gone."""
+        if context == COMBINED_CONTEXT:
+            return async_dispatcher_connect(
+                self.hass, SIGNAL_COMBINED_UPDATE, update_callback
+            )
+        return super().async_add_listener(update_callback, context)
+
+    @callback
+    def async_update_listeners(self) -> None:
+        super().async_update_listeners()
+        async_dispatcher_send(self.hass, SIGNAL_COMBINED_UPDATE)
+
     def _configured_stops(self) -> set[str]:
         return set(self._registered_entries().values())
 
@@ -162,7 +200,7 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
             **{
                 entry.entry_id: entry.data[CONF_STOP]
                 for entry in self.hass.config_entries.async_entries(DOMAIN)
-                if entry.disabled_by is None
+                if entry.disabled_by is None and not is_combined(entry)
             },
         }
 
@@ -217,15 +255,101 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
 
     @callback
     def register(self, entry: ConfigEntry) -> None:
+        if is_combined(entry):
+            self._combined.add(entry.entry_id)
+            self._remember_source_entities()
+            if not self._source_unsubs:
+                self._source_unsubs = [
+                    async_dispatcher_connect(
+                        self.hass, SIGNAL_CONFIG_ENTRY_CHANGED, self._source_changed
+                    ),
+                    self.hass.bus.async_listen(
+                        er.EVENT_ENTITY_REGISTRY_UPDATED, self._source_entity_changed
+                    ),
+                ]
+            return
         self.entries[entry.entry_id] = entry.data[CONF_STOP]
 
     @callback
     def unregister(self, entry: ConfigEntry) -> None:
+        self._combined.discard(entry.entry_id)
+        if not self._combined:
+            self._clear_source_listeners()
+        else:
+            self._remember_source_entities()
         stop = self.entries.pop(entry.entry_id, None)
         if stop is not None and stop not in self._configured_stops():
             self._cache.pop(stop, None)
         self._schedule_expiry()
-        self.async_set_updated_data(self.statuses())
+        self.data = self.statuses()
+        self.async_update_listeners()
+
+    @callback
+    def _clear_source_listeners(self) -> None:
+        for unsubscribe in self._source_unsubs:
+            unsubscribe()
+        self._source_unsubs.clear()
+        self._source_entity_ids.clear()
+
+    def _selected_sources(self) -> set[str]:
+        return {
+            source
+            for entry_id in self._combined
+            if (entry := self.hass.config_entries.async_get_entry(entry_id)) is not None
+            for source in source_ids(entry)
+        }
+
+    @callback
+    def _remember_source_entities(self) -> None:
+        self._source_entity_ids = {
+            entity.entity_id
+            for source in self._selected_sources()
+            if (entity := source_entity(self.hass, source)) is not None
+        }
+
+    @callback
+    def _source_changed(self, change: ConfigEntryChange, entry: ConfigEntry) -> None:
+        if entry.entry_id in self._combined | self._selected_sources():
+            self._remember_source_entities()
+            self.async_update_listeners()
+
+    @callback
+    def _source_entity_changed(
+        self, event: Event[er.EventEntityRegistryUpdatedData]
+    ) -> None:
+        entity = er.async_get(self.hass).async_get(event.data["entity_id"])
+        if event.data["entity_id"] in self._source_entity_ids or (
+            entity is not None
+            and entity.platform == DOMAIN
+            and entity.unique_id in self._selected_sources()
+        ):
+            self._remember_source_entities()
+            self.async_update_listeners()
+
+    def source_statuses(self, entry: ConfigEntry) -> dict[str, Status]:
+        result: dict[str, Status] = {}
+        for entry_id in source_ids(entry):
+            source = leaf_entry(self.hass, entry_id)
+            entity = source_entity(self.hass, entry_id)
+            result[entry_id] = (
+                self.status(source.data[CONF_STOP])
+                if source is not None
+                and source.disabled_by is None
+                and source.state is ConfigEntryState.LOADED
+                and entry_id in self.entries
+                and entity is not None
+                and not entity.disabled
+                else "unavailable"
+            )
+        return result
+
+    def entry_status(self, entry: ConfigEntry) -> Status:
+        if not is_combined(entry):
+            return self.status(entry.data[CONF_STOP])
+        statuses = self.source_statuses(entry).values()
+        if entry.entry_id not in self._combined or "unavailable" in statuses:
+            return "unavailable"
+        return "stale" if "stale" in statuses else "ready"
 
     def statuses(self) -> dict[str, Status]:
         return {stop: self.status(stop) for stop in self._configured_stops()}
@@ -622,10 +746,26 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
             self._get_board(stop)
         for key in list(self._lookups):
             self.lookup(key)
-        self.async_set_updated_data(self.statuses())
+        self.data = self.statuses()
+        self.async_update_listeners()
         self._schedule_expiry()
 
     def snapshot(self, entry: ConfigEntry, entity_id: str) -> BoardPayload:
+        if is_combined(entry):
+            status = self.entry_status(entry)
+            sources = (
+                [
+                    self.snapshot(
+                        self.hass.config_entries.async_get_known_entry(source), ""
+                    )
+                    for source in source_ids(entry)
+                ]
+                if status != "unavailable"
+                else []
+            )
+            if any(source["status"] == "unavailable" for source in sources):
+                status, sources = "unavailable", []
+            return combine_snapshots(entry, entity_id, status, sources)
         stop: str = entry.data[CONF_STOP]
         board = self._get_board(stop) if entry.entry_id in self.entries else None
         lines = normalized_lines(entry.options.get(CONF_LINES, ""))
@@ -666,6 +806,8 @@ class OvapiCoordinator(DataUpdateCoordinator[dict[str, Status]]):
 
     async def async_shutdown(self) -> None:
         await super().async_shutdown()
+        self._clear_source_listeners()
+        self._combined.clear()
         if self._inflight is not None:
             self._inflight.cancel()
         if self._validation_task is not None:

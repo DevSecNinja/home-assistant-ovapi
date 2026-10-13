@@ -92,8 +92,43 @@ voorkeuren blijven behouden. Keuzes verlopen binnen 29 minuten; daarna laad je
 nieuwe gegevens. Alleen je gekozen naam, code en voorkeuren worden opgeslagen.
 De gekozen halte hergebruikt de opgehaalde gegevens zonder derde controleaanvraag.
 
-**Hele stations automatisch toevoegen is nog niet beschikbaar.** Een favoriet
-blijft één haltecode. Bij Diemen Zuid bevat het OVAPI-haltegebied alleen bussen,
+### Favorieten handmatig combineren
+
+Maak eerst favorieten voor de losse haltes of richtingen. Kies daarna **Integratie
+toevoegen > OVAPI > Bestaande favorieten combineren**. Selecteer **2-12
+bronfavorieten**, geef de combinatie bijvoorbeeld de naam **Diemen Zuid** en stel
+een eigen looptijd in (standaard **0**). Kies alleen de gecombineerde entiteit in
+de OVAPI-kaart: zo krijg je één bord in plaats van afzonderlijke borden.
+
+De combinatie hergebruikt bestaande gegevens zonder extra OVAPI-aanvragen,
+halte-reserveringen of vertrekcache. De limiet van tien verschillende haltecodes
+blijft gelden. Andere combinaties zijn niet selecteerbaar. Alleen volledig gelijke
+vertrekrecords worden samengevoegd; tegenovergestelde richtingen en verschillende
+voertuigen blijven apart. Het bord sorteert op verwachte of anders geplande
+vertrektijd en toont maximaal dertig komende vertrekken.
+
+Combinaties luisteren alleen mee. Als alle bronentiteiten en hun kaarten niet
+actief zijn, houdt de combinatie het ophalen niet gaande. Handmatig bijwerken van
+een gecombineerde entiteit leest alleen de cache opnieuw.
+
+Filters van de bronfavorieten blijven gelden. Laat lijn- en bestemmingsfilters
+leeg en kies de gewenste vervoermiddelen om ook nieuwe diensten te volgen.
+Combineren kan weggefilterde vertrekken niet terughalen. Een geldige lege bron
+blijft actueel. Eén verouderde bron maakt het hele bord verouderd. Als een bron
+ontbreekt, uitgeschakeld, niet geladen of verlopen is, wordt het hele bord **niet
+beschikbaar**: geen stilzwijgend onvolledig overzicht. Het sensorattribuut
+`unavailable_sources` noemt de betrokken bronnen; verwijderde bronnen staan als
+hun opgeslagen ID vermeld. De oudste ophaal- en vervaltijd blijven gelden.
+
+Via **Configureren** wijzig je bronnen en looptijd; via **Opnieuw configureren**
+ook de naam. Ontbrekende bronnen blijven als ID selecteerbaar voor verwijderen
+of vervangen. Een gewijzigde entiteitsnaam, bronhalte of herstart verbreekt de
+koppeling niet. Een verwijderde favoriet opnieuw aanmaken levert wel een nieuwe
+koppeling op: selecteer die zelf. Vertrekken blijven buiten Recorder en diagnostiek.
+
+**Hele stations automatisch toevoegen is nog niet beschikbaar.** Een bronfavoriet
+blijft één haltecode; handmatig combineren bewijst geen volledige stationsdekking.
+Bij Diemen Zuid bevat het OVAPI-haltegebied alleen bussen,
 terwijl werkende metrohaltes apart beschikbaar zijn. Deze update doet niet alsof
 dat busgebied het volledige station is. Automatische stationsgroepering staat in
 [#5](https://github.com/DevSecNinja/home-assistant-ovapi/issues/5), in afwachting van

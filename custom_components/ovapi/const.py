@@ -20,6 +20,11 @@ CONF_LINES = "lines"
 CONF_DESTINATION = "destination"
 CONF_WALK = "walking_minutes"
 CONF_TRANSPORTS = "transport_types"
+CONF_ENTRY_TYPE = "entry_type"
+CONF_SOURCES = "source_entry_ids"
+MAX_SOURCES = 12
+COMBINED_CONTEXT = "combined"
+SIGNAL_COMBINED_UPDATE = f"{DOMAIN}_combined_update"
 SUPPORTED_TRANSPORTS = ("bus", "tram", "metro")
 CARD_INSTALL_URL = (
     "https://my.home-assistant.io/redirect/hacs_repository/"

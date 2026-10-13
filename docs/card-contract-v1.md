@@ -17,7 +17,8 @@ Use standard `unsubscribe_events` to unsubscribe. Entity read permissions apply.
 Subscriptions never initiate upstream requests.
 
 The operational sensor has state `ready`, `stale`, or HA `unavailable`, and static
-attributes `contract_version: 1`, `board_id` (configuration entry ID). Departure
+capability attributes `contract_version: 1`, `board_id` (configuration entry ID),
+including while unavailable. Departure
 lists are not state attributes. Display names are user-configured.
 
 ## Snapshot
@@ -63,3 +64,21 @@ The backend actively erases expired boards and emits unavailable snapshots.
 
 Breaking changes require a new version and coordination with lovelace-ovapi.
 Additive optional fields may be introduced within v1.
+
+## Manual combined favourites
+
+A manual combination is another v1 sensor/feed; select it alone for one card
+board. Its `stop.id` equals its stable configuration-entry ID and `stop.name` is
+the user's combined name. `walking_minutes` belongs to the combination.
+Source favourite filters apply before merging, sorting and limiting to thirty
+departures. Only equality of all v1 departure fields permits deduplication.
+
+All selected leaf sources must be usable. A missing/disabled/unloaded/expired
+source makes the combination unavailable, with no departures and null dates.
+Otherwise any stale source makes the combination stale. Fetch and expiry dates
+are the oldest selected source instants, never the combination/replay time.
+No `coverage` field is emitted: selected favourites are not verified platforms.
+
+Safe combined entity attributes `source_entry_ids`, `source_count` and
+`unavailable_sources` help repair configuration. They contain references and
+user-configured labels, not departure data or live timestamps.

@@ -1,0 +1,9 @@
+{
+  "language": "nl",
+  "requests": 1,
+  "card_sha256": "0d12045dac54fcda844ef3c78aebeb4cf8f98cfaed06a2621535d484ba3d224f",
+  "boards": 1,
+  "departures": 2,
+  "grouped_routes": 2,
+  "unavailable_capability_selector": true
+}

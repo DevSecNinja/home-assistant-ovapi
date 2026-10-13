@@ -10,22 +10,26 @@ import probatio as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_NAME
-from homeassistant.core import HassJob, callback
+from homeassistant.core import HassJob, HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
 from homeassistant.helpers.event import async_call_later
 from homeassistant.util import dt as dt_util
 
 from .client import ApiError, valid_stop
+from .combined import combined_identity, is_combined, leaf_entry, source_label
 from .const import (
     CARD_DOCS_URL,
     CARD_INSTALL_URL,
     CONF_DESTINATION,
+    CONF_ENTRY_TYPE,
     CONF_LINES,
+    CONF_SOURCES,
     CONF_STOP,
     CONF_TRANSPORTS,
     CONF_WALK,
     DOMAIN,
+    MAX_SOURCES,
     RETENTION_SECONDS,
     SUPPORTED_TRANSPORTS,
 )
@@ -111,6 +115,83 @@ def valid_transports(value: Any) -> bool:
     )
 
 
+def combined_schema(
+    hass: HomeAssistant,
+    defaults: dict[str, Any],
+    current: config_entries.ConfigEntry | None,
+    *,
+    options: bool = False,
+) -> vol.Schema:
+    sources = {
+        entry.entry_id
+        for entry in hass.config_entries.async_entries(DOMAIN)
+        if not is_combined(entry)
+    }
+    if current:
+        sources.update(current.options[CONF_SOURCES])
+    fields: dict[Any, Any] = {}
+    if not options:
+        fields[vol.Required(CONF_NAME, default=defaults.get(CONF_NAME, ""))] = vol.All(
+            cv.string, vol.Length(min=1, max=80)
+        )
+    fields[vol.Required(CONF_SOURCES, default=defaults.get(CONF_SOURCES, []))] = (
+        selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=[
+                    selector.SelectOptionDict(
+                        value=source, label=source_label(hass, source)
+                    )
+                    for source in sorted(sources)
+                ],
+                multiple=True,
+                mode=selector.SelectSelectorMode.LIST,
+            )
+        )
+    )
+    fields.update(
+        {
+            key: value
+            for key, value in schema(defaults, options=True).schema.items()
+            if key == CONF_WALK
+        }
+    )
+    return vol.Schema(fields)
+
+
+def combined_errors(
+    hass: HomeAssistant,
+    values: dict[str, Any],
+    current: config_entries.ConfigEntry | None,
+) -> dict[str, str]:
+    if not values[CONF_NAME].strip():
+        return {CONF_NAME: "invalid_name"}
+    if not valid_walk(values.get(CONF_WALK, 0)):
+        return {CONF_WALK: "invalid_walk"}
+    sources: list[str] = values[CONF_SOURCES]
+    previous = current.options[CONF_SOURCES] if current else []
+    if not 2 <= len(set(sources)) == len(sources) <= MAX_SOURCES or any(
+        leaf_entry(hass, source) is None
+        and not (
+            source in previous and hass.config_entries.async_get_entry(source) is None
+        )
+        for source in sources
+    ):
+        return {CONF_SOURCES: "invalid_sources"}
+    if any(
+        entry is not current and entry.unique_id == combined_identity(sources)
+        for entry in hass.config_entries.async_entries(DOMAIN)
+    ):
+        return {"base": "already_configured"}
+    return {}
+
+
+def combined_options(values: dict[str, Any]) -> dict[str, Any]:
+    return {
+        CONF_SOURCES: sorted(values[CONF_SOURCES]),
+        CONF_WALK: int(values.get(CONF_WALK, 0)),
+    }
+
+
 class OvapiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
@@ -147,6 +228,8 @@ class OvapiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        if is_combined(self._get_reconfigure_entry()):
+            return await self.async_step_combined(user_input)
         if user_input is not None:
             return await self._step("reconfigure", user_input)
         return self._menu("reconfigure")
@@ -154,7 +237,56 @@ class OvapiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def _menu(self, step: str) -> ConfigFlowResult:
         if len(self._async_in_progress()) >= MAX_LOOKUPS:
             return self.async_abort(reason="discovery_busy")
-        return self.async_show_menu(step_id=step, menu_options=["search", "manual"])
+        return self.async_show_menu(
+            step_id=step,
+            menu_options=["search", "manual", "combined"]
+            if step == "user"
+            else ["search", "manual"],
+        )
+
+    async def async_step_combined(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        current = (
+            self._get_reconfigure_entry()
+            if self.source == config_entries.SOURCE_RECONFIGURE
+            else None
+        )
+        defaults = {**current.data, **current.options} if current else {}
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            errors = combined_errors(self.hass, user_input, current)
+            if not errors:
+                data = {
+                    CONF_ENTRY_TYPE: "combined",
+                    CONF_NAME: user_input[CONF_NAME].strip(),
+                }
+                options = combined_options(user_input)
+                unique_id = combined_identity(options[CONF_SOURCES])
+                await self.async_set_unique_id(unique_id)
+                if current:
+                    self.hass.config_entries.async_update_entry(
+                        current, title=data[CONF_NAME], unique_id=unique_id
+                    )
+                    return self.async_update_reload_and_abort(
+                        current, data=data, options=options
+                    )
+                return self.async_create_entry(
+                    title=data[CONF_NAME],
+                    data=data,
+                    options=options,
+                    description="default",
+                    description_placeholders={
+                        "card_install_url": CARD_INSTALL_URL,
+                        "card_docs_url": CARD_DOCS_URL,
+                    },
+                )
+            defaults = user_input
+        return self.async_show_form(
+            step_id="combined",
+            data_schema=combined_schema(self.hass, defaults, current),
+            errors=errors,
+        )
 
     async def async_step_manual(
         self, user_input: dict[str, Any] | None = None
@@ -555,6 +687,8 @@ class OvapiOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        if is_combined(self.config_entry):
+            return await self.async_step_combined(user_input)
         errors: dict[str, str] = {}
         if user_input is not None:
             if not valid_walk(user_input.get(CONF_WALK, 0)) or not valid_transports(
@@ -587,6 +721,28 @@ class OvapiOptionsFlow(config_entries.OptionsFlow):
                 self.hass.config_entries.async_update_entry(entry, unique_id=unique_id)
                 return self.async_create_entry(data=options)
         return self._form(errors, user_input)
+
+    async def async_step_combined(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        entry = self.config_entry
+        defaults = {**entry.data, **entry.options}
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            user_input = {**user_input, CONF_NAME: entry.data[CONF_NAME]}
+            errors = combined_errors(self.hass, user_input, entry)
+            if not errors:
+                self.hass.config_entries.async_update_entry(
+                    entry,
+                    unique_id=combined_identity(user_input[CONF_SOURCES]),
+                )
+                return self.async_create_entry(data=combined_options(user_input))
+            defaults = user_input
+        return self.async_show_form(
+            step_id="combined",
+            data_schema=combined_schema(self.hass, defaults, entry, options=True),
+            errors=errors,
+        )
 
     def _form(
         self, errors: dict[str, str], defaults: dict[str, Any] | None = None

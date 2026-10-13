@@ -12,7 +12,8 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 
-from .const import DOMAIN
+from .combined import is_combined
+from .const import COMBINED_CONTEXT, DOMAIN
 from .coordinator import get_coordinator
 
 
@@ -81,6 +82,8 @@ def websocket_subscribe(
             return
         connection.send_event(msg["id"], coordinator.snapshot(entry, current.entity_id))
 
-    connection.subscriptions[msg["id"]] = coordinator.async_add_listener(send_snapshot)
+    connection.subscriptions[msg["id"]] = coordinator.async_add_listener(
+        send_snapshot, COMBINED_CONTEXT if is_combined(entry) else None
+    )
     connection.send_result(msg["id"])
     send_snapshot()

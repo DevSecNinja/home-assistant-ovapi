@@ -108,7 +108,7 @@ Selecting a timing point reuses its acquired board and original expiry, without 
 third validation request. Advanced manual checks wait automatically through the
 interactive allowance. Reload/startup retries and manual entity updates keep
 the ordinary background floor.
-Polling is always on while an enabled board entity or card subscription is active;
+Polling is always on while an enabled single-stop board entity or its card subscription is active;
 there are no travel windows, interval fields, or timing settings to configure.
 
 Use **Configure** to change walking time/filters locally, with no network request
@@ -138,9 +138,46 @@ fails, the preserved form shows the error: submit again to wait automatically
 before another attempt. Failures are not retried in an automatic request loop.
 Background startup/reload retries retain their ordinary polling floor.
 
+### Combine existing favourites into one board
+
+Add your individual stop/direction favourites first. Then choose **Add integration >
+OVAPI > Combine existing favourites**, select **2-12 source favourites**, give the
+combination a name (for example **Diemen Zuid**) and set its own walking time
+(default **0**). Select **only the combined entity** in the companion card to get
+one board, rather than selecting the source entities as separate boards.
+
+The combination reuses each favourite's filtered feed: it makes **no extra OVAPI
+requests**, reserves no timing points and adds no departure cache. The ten distinct
+timing-point limit is unchanged. Sources must be single-stop favourites, not other
+combinations. Departures are sorted by expected time, or scheduled time if unknown,
+with only fully identical records deduplicated and the existing thirty-row limit.
+Opposite directions and different vehicles remain distinct.
+
+Combined sensors and subscriptions are passive: they do not keep polling alive
+if all source viewers are disabled or unloaded, and manually updating a combined
+entity only rereads cached data.
+
+Source line, destination and transport filters still apply. Leave source line and
+destination filters blank, with the desired transport types selected, to include
+new services automatically. Combining cannot recover departures a source filters
+out. A valid empty source is still ready. If any source is stale, the whole board
+is stale; if any source is missing, disabled, unloaded or expired, the whole board
+is **unavailable**, not a silently incomplete subset. The combined sensor's
+`unavailable_sources` attribute identifies affected favourites (removed entries
+appear by their saved ID). The card keeps the original sources' **oldest** fetch
+and expiry times; reconnecting, editing or reloading never extends them.
+
+Use **Configure** to replace sources or change walking time. **Reconfigure** also
+changes the group name. Saved missing references remain listed by ID so you can
+deselect them and choose replacements. Source references follow entity renames,
+source reconfiguration and restarts; recreating a deleted favourite is a new
+reference and must be selected explicitly. Only names, stable source references,
+walking time and safe source-health attributes persist, never departure payloads.
+
 ### Whole-station discovery is not included yet
 
-Each favourite still represents one timing point. OVAPI stop areas can omit
+Each source favourite still represents one timing point. Manual combinations do
+not discover or certify every platform in a station. OVAPI stop areas can omit
 working metro platforms: Diemen Zuid's area currently exposes buses while its
 known metro timing points exist separately. This update does **not** label that
 bus-only group a complete station or freeze today's lines as station membership.
@@ -151,7 +188,7 @@ metadata provider is used.
 
 ## Status and data
 
-The device shows the configured timing-point identity and **Departure feed
+The device shows the configured timing-point identity (or manual combination) and **Departure feed
 status**. **Feed ready** means the source check succeeded; it is not a departure
 time. Existing entity IDs and their `departure_board` suffix remain unchanged.
 
