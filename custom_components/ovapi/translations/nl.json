@@ -6,7 +6,8 @@
         "description": "Zoek een halte op plaats en naam. Kies daarna het haltebord of de richting. OVAPI gebruikt openbaar, onversleuteld HTTP; de dekking verschilt. Gebruik voor NS-treinen de aparte integratie Nederlandse Spoorwegen.",
         "menu_options": {
           "search": "Halte zoeken op naam",
-          "manual": "Haltecode invoeren (geavanceerd)"
+          "manual": "Haltecode invoeren (geavanceerd)",
+          "combined": "Bestaande favorieten combineren"
         },
         "data": {
           "name": "Naam favoriet",
@@ -64,6 +65,19 @@
           "transport_types": "Alles is standaard geselecteerd, ook voor nieuwe diensten. Kies minstens een vervoermiddel. Dit bewijst niet dat elk vervoermiddel hier rijdt.",
           "lines": "Leeg = alle lijnen. Exacte openbare lijnnummers met komma's, bijvoorbeeld 50, 51. Voeg geen M toe tenzij OVAPI die vermeldt.",
           "destination": "Leeg = alle bestemmingen. Een tekstfragment, bijvoorbeeld Centraal; geen lijst met komma's."
+        }
+      },
+      "combined": {
+        "title": "Bestaande favorieten combineren",
+        "description": "Kies 2-12 bestaande favorieten voor een vertrekbord. Hun filters blijven gelden; laat bronfilters vrij om nieuwe diensten te tonen. Combinaties kunnen geen andere combinaties bevatten. Er zijn geen extra OVAPI-aanvragen. Als een bron ontbreekt, uitgeschakeld, niet geladen of verlopen is, is het hele bord niet beschikbaar. Ontbrekende bronnen blijven in de voorkeuren zichtbaar als ID, zodat je ze kunt verwijderen of vervangen.",
+        "data": {
+          "name": "Naam gecombineerde favoriet",
+          "source_entry_ids": "Bronfavorieten",
+          "walking_minutes": "Looptijd (minuten)"
+        },
+        "data_description": {
+          "source_entry_ids": "Maak eerst minstens twee favorieten voor losse haltes. Niet-beschikbare favorieten blijven selecteerbaar. Namen en entiteits-ID's onderscheiden de bronnen.",
+          "walking_minutes": "Looptijd voor dit gecombineerde bord, niet overgenomen van een bron."
         }
       },
       "directory": {
@@ -130,6 +144,8 @@
       "reconfigure_in_progress": "Een ander instelvenster wijzigt deze favoriet. Rond dat eerst af of sluit het venster voordat je opnieuw probeert.",
       "short_query": "Voer minstens twee tekens in, of kies geavanceerde code-invoer.",
       "invalid_name": "Voer een niet-lege naam voor de favoriet in.",
+      "invalid_sources": "Kies 2-12 verschillende OVAPI-favorieten voor losse haltes. Andere combinaties zijn niet toegestaan.",
+      "already_configured": "Deze combinatie van bronfavorieten bestaat al.",
       "invalid_walk": "Voer een geheel aantal loopminuten van 0 tot 120 in.",
       "cannot_connect": "OVAPI is niet bereikbaar. Wacht even en probeer opnieuw.",
       "unknown_stop": "OVAPI heeft deze halte niet teruggegeven. Controleer de haltecode.",
@@ -148,7 +164,7 @@
       "invalid_transport": "Kies minstens een vervoermiddel: bus, tram of metro."
     },
     "abort": {
-      "already_configured": "Deze combinatie van halte en filters bestaat al.",
+      "already_configured": "Deze favoriet bestaat al.",
       "reconfigure_successful": "De favoriet is bijgewerkt.",
       "discovery_busy": "Er staan te veel haltezoekopdrachten open. Sluit een ander instelvenster en probeer opnieuw."
     },
@@ -174,6 +190,17 @@
   },
   "options": {
     "step": {
+      "combined": {
+        "title": "Voorkeuren gecombineerde favoriet",
+        "description": "Kies 2-12 favorieten voor losse haltes. Bronfilters blijven gelden. Er zijn geen extra aanvragen. Als een bron ontbreekt, uitgeschakeld, niet geladen of verlopen is, is het hele bord niet beschikbaar. Ontbrekende bronnen staan als ID in de lijst: deselecteer ze en kies een vervanger. Gebruik Opnieuw configureren om de naam te wijzigen.",
+        "data": {
+          "source_entry_ids": "Bronfavorieten",
+          "walking_minutes": "Looptijd (minuten)"
+        },
+        "data_description": {
+          "walking_minutes": "Looptijd voor dit gecombineerde bord, niet overgenomen van een bron."
+        }
+      },
       "init": {
         "title": "Voorkeuren favoriet",
         "description": "Nu gemeld door de bron: {observed_modes}. Een streepje betekent geen actuele informatie over vervoermiddelen, niet dat er niets rijdt. Filters en looptijd zijn lokaal en doen geen extra aanvragen.",
@@ -192,7 +219,9 @@
       }
     },
     "error": {
-      "already_configured": "Een andere favoriet heeft deze combinatie van halte en filters al.",
+      "already_configured": "Een andere favoriet heeft deze halte en filters of deze bronfavorieten al.",
+      "invalid_name": "Voer een niet-lege naam voor de favoriet in.",
+      "invalid_sources": "Kies 2-12 verschillende OVAPI-favorieten voor losse haltes. Andere combinaties zijn niet toegestaan.",
       "invalid_walk": "Voer een geheel aantal loopminuten van 0 tot 120 in.",
       "invalid_transport": "Kies minstens een vervoermiddel: bus, tram of metro."
     }

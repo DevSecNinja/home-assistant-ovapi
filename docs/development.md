@@ -124,6 +124,26 @@ original transit-sign artwork; no network assets or installed fonts are needed.
 
 ### Companion-card E2E
 
+For native combined-favourite setup/options/reconfigure and one actual Lovelace
+board, supply an already built current card bundle (read-only source). The harness
+copies only that bundle to its isolated temporary server:
+
+```sh
+OVAPI_CARD_BUNDLE=/absolute/path/to/lovelace-ovapi.js \
+OVAPI_UI_ARTIFACTS=.ha-e2e/combined \
+  mise exec -- uv run --locked --group e2e \
+  pytest tests/ui/test_native_combined.py -m frontend --no-cov --timeout=60
+```
+
+This checks both languages, keyboard selection, an invalid one-source submission,
+local preferences, source replacement, one two-direction board, source loss and
+the unchanged card selector with an unavailable combined entity. The artifact
+records the bundle SHA-256 and actual upstream count (one batched request, unchanged
+by combining, editing or card rendering). Without `OVAPI_CARD_BUNDLE`, only this
+optional browser test skips. Use the minimum environment/group flags above to
+repeat against HA 2026.10.0. The current frontend's default overview uses its own
+strategy, so this harness creates a separate named storage dashboard.
+
 Do not point development tests at a live HA installation or public OVAPI.
 The companion repository owns the combined browser/HA scenario. To reproduce its
 backend side:
@@ -167,11 +187,11 @@ resolved official templates, ran `setup-plan.sh`, `setup-tasks.sh` and
 phases without spawning additional agents. `.specify/feature.json` selects the
 feature independently of the app-managed Git branch and is upstream-defined local
 state (ignored by Git). The repository-local mise environment sets
-`SPECIFY_FEATURE_DIRECTORY=specs/003-station-favourites` so fresh checkouts reproduce
+`SPECIFY_FEATURE_DIRECTORY=specs/004-manual-combined-favourites` so fresh checkouts reproduce
 feature resolution. Constitution, specification,
 plan, research, data model, contract, tasks and verification live in
 `specs/001-ovapi-integration/`, `specs/002-stop-name-picker/`,
-`specs/003-station-favourites/` and
+`specs/003-station-favourites/`, `specs/004-manual-combined-favourites/` and
 `.specify/memory/constitution.md`.
 
 Run `mise run specify -- --help` for the pinned CLI. Never replace these artifacts

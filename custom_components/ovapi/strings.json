@@ -6,7 +6,8 @@
         "description": "Find a stop by town and name. Then choose the stop sign or direction. OVAPI uses public, unencrypted HTTP; coverage varies. For NS trains, use the separate Nederlandse Spoorwegen integration.",
         "menu_options": {
           "search": "Find a stop by name",
-          "manual": "Enter a timing-point code (advanced)"
+          "manual": "Enter a timing-point code (advanced)",
+          "combined": "Combine existing favourites"
         },
         "data": {
           "name": "Favourite name",
@@ -64,6 +65,19 @@
           "transport_types": "All selected by default, including future services. Select at least one transport type. This does not imply every mode serves this stop.",
           "lines": "Blank = all lines. Exact public numbers separated by commas, for example 50, 51. Do not add an M unless OVAPI reports it.",
           "destination": "Blank = all destinations. One text fragment, for example Centraal; not a comma-separated list."
+        }
+      },
+      "combined": {
+        "title": "Combine existing favourites",
+        "description": "Select 2-12 existing favourites for one departure board. Their filters still apply; leave source filters unrestricted to include new services. Combinations cannot contain other combinations. No extra OVAPI requests are made. If any source is missing, disabled, unloaded or expired, the whole board is unavailable. In preferences, saved missing sources appear by ID so you can remove or replace them.",
+        "data": {
+          "name": "Combined favourite name",
+          "source_entry_ids": "Source favourites",
+          "walking_minutes": "Walking time (minutes)"
+        },
+        "data_description": {
+          "source_entry_ids": "Create at least two single-stop favourites first. Unavailable favourites remain selectable. Names and entity IDs identify your sources.",
+          "walking_minutes": "Walking time for this combined board, not inherited from a source."
         }
       },
       "directory": {
@@ -130,6 +144,8 @@
       "reconfigure_in_progress": "Another setup window is changing this favourite. Finish there or close it before trying again.",
       "short_query": "Enter at least two characters, or choose advanced code entry.",
       "invalid_name": "Enter a nonblank favourite name.",
+      "invalid_sources": "Select 2-12 different single-stop OVAPI favourites. Other combinations cannot be selected.",
+      "already_configured": "This combination of source favourites is already configured.",
       "invalid_walk": "Enter a whole number of walking minutes from 0 to 120.",
       "cannot_connect": "Cannot reach OVAPI. The integration will back off; try again later.",
       "unknown_stop": "OVAPI did not return this stop. Check its timing-point code.",
@@ -148,7 +164,7 @@
       "invalid_transport": "Select at least one transport type: bus, tram or metro."
     },
     "abort": {
-      "already_configured": "This stop and filter combination is already configured.",
+      "already_configured": "This favourite is already configured.",
       "reconfigure_successful": "The favourite was updated.",
       "discovery_busy": "Too many stop lookups are open. Close another setup window and try again."
     },
@@ -174,6 +190,17 @@
   },
   "options": {
     "step": {
+      "combined": {
+        "title": "Combined favourite preferences",
+        "description": "Select 2-12 single-stop favourites. Source filters still apply. No extra requests are made. Any missing, disabled, unloaded or expired source makes the whole board unavailable. Saved missing sources appear by ID: deselect them and select a replacement. Use Reconfigure to change the combined name.",
+        "data": {
+          "source_entry_ids": "Source favourites",
+          "walking_minutes": "Walking time (minutes)"
+        },
+        "data_description": {
+          "walking_minutes": "Walking time for this combined board, not inherited from a source."
+        }
+      },
       "init": {
         "title": "Favourite preferences",
         "description": "Current source observations: {observed_modes}. A dash means no current mode information, not no service. Filters and walking time are local and make no extra requests.",
@@ -192,7 +219,9 @@
       }
     },
     "error": {
-      "already_configured": "Another favourite already has this stop and filter combination.",
+      "already_configured": "Another favourite already has this stop and filter combination or these source favourites.",
+      "invalid_name": "Enter a nonblank favourite name.",
+      "invalid_sources": "Select 2-12 different single-stop OVAPI favourites. Other combinations cannot be selected.",
       "invalid_walk": "Enter a whole number of walking minutes from 0 to 120.",
       "invalid_transport": "Select at least one transport type: bus, tram or metro."
     }
