@@ -16,13 +16,27 @@ mise run package
 mise exec -- lefthook run pre-commit
 ```
 
-Python 3.14.8 and uv 0.12.19 are pinned in `.mise.toml`; `uv.lock` pins both
+Python 3.14.8 and uv 0.12.20 are pinned in `.mise.toml`; `uv.lock` pins both
 test environments: development HA 2026.10.1 / pytest-homeassistant-custom-component
 0.13.372, and declared minimum HA 2026.10.0 / fixture 0.13.371. Commands use
 `--locked`: dependency drift fails instead of silently updating the lock.
 Both test tasks fail unless every integration
 module exceeds 95% statement **and** branch coverage; config flow requires 100%
 in both. There is no aggregate-only escape hatch.
+
+Keep `.mise.toml`'s `min_version` and both CI installation pins (`mise-version`
+and the mise action's `version`) aligned. Each pin's immediately preceding Renovate
+annotation lets the inherited manager update them together. Compatibility tests
+reject stale or unannotated CI pins while allowing coherent version bumps.
+The Python pin is the development/CI interpreter, not the HA support floor.
+Python 3.15 resolves both HA profiles and passes the proposed Linux CI, but the
+native macOS installation is not ready: locked `pycares==5.1.0` builds bundled
+c-ares from source and fails on `pipe2` availability with the current macOS SDK,
+even with CMake installed. Renovate temporarily allows Python `<3.15` for both
+mise and `requires-python`; Python 3.14 patch updates remain managed. Revisit this
+constraint when the locked dependencies install normally on macOS, then rerun both
+HA suites and native browser checks. Do not patch dependencies, suppress compiler
+errors, or raise the HA floor to force the interpreter upgrade.
 
 ### Home Assistant compatibility and version changes
 
@@ -49,6 +63,9 @@ fixture release for the `minimum` group, run `mise exec -- uv lock`, and run
 `mise run check`. Updating just the HACS field or just the minimum fixture fails
 the exact-runtime check. Routine development-fixture/Renovate updates must **not**
 automatically raise the minimum; keep the minimum profile intact and test both.
+Renovate therefore excludes only this fixture in the `minimum` dependency group;
+the development fixture remains managed. Fixture 0.13.372 requires HA 2026.10.1
+and cannot replace minimum fixture 0.13.371 while the supported floor is 2026.10.0.
 There is no arbitrary maximum HA version or runtime rejection of manual installs.
 
 ### Integration release identity
@@ -219,7 +236,15 @@ Reviewed DevSecNinja/.github at `9170d8c24e95a27dca91e1b7904f1f70a94dd1b0` and
 repo-starter at `970ad82787165d0f8673815c08614a13a498a74a`. CI reuses the shared
 lint workflow v3.2.0 by full SHA and enables failure gating (its default is false).
 HA pytest, ruff, types, packaging, HACS and hassfest are repository-specific jobs.
-All run on pull requests, including drafts, without path-filtered required checks.
+All run on pull requests, including drafts, and on pushes to `main`, without
+path-filtered checks. Pushes to other branches do not duplicate PR runs.
+Repository-owned jobs use GitHub-hosted `ubuntu-26.04`; the reusable workflow's
+runner remains upstream-owned. Actionlint 1.7.12 predates that hosted label, so
+`.github/actionlint.yaml` adds only that exact label through its documented
+`self-hosted-runner.labels` extension setting. This does not provision or select
+a self-hosted runner, use a wildcard, or suppress lint errors. Remove the entry
+when the pinned actionlint supports Ubuntu 26.04 natively. Compatibility tests run
+the real linter and require unknown runner labels to keep failing.
 The pinned reusable lint workflow declares `security-events: write` on nested
 checkov/trivy jobs even when those jobs and SARIF upload are disabled. GitHub
 validates that declaration before evaluating job conditions, so the caller grants

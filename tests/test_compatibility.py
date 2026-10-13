@@ -1,11 +1,125 @@
 """Guard the advertised support floor using metadata, not duplicated literals."""
 
 import json
+import re
+import subprocess
 import sys
+import tomllib
+from pathlib import Path
 
 import pytest
+import yaml
 
 from scripts import check_compatibility as compatibility
+
+# The inherited workflow manager's regex, with Python-style named groups.
+RENOVATE_WORKFLOW_VERSION = re.compile(
+    r"# renovate: datasource=(?P<datasource>\S+) depName=(?P<depName>\S+)\n"
+    r'\s+[\w-]*version: "?(?P<currentValue>[^\s"]+)"?'
+)
+
+
+def _check_mise_ci_versions(minimum: str, workflow: str) -> None:
+    pins = []
+    for job in yaml.safe_load(workflow)["jobs"].values():
+        if job.get("uses", "").startswith(
+            "DevSecNinja/.github/.github/workflows/lint.yml@"
+        ):
+            pins.append(job["with"]["mise-version"])
+        for step in job.get("steps", []):
+            if step.get("uses", "").startswith("jdx/mise-action@"):
+                pins.append(step["with"]["version"])
+    assert pins and all(pin == minimum for pin in pins), (
+        "CI mise installation pins must equal .mise.toml min_version"
+    )
+    tracked = [
+        match["currentValue"]
+        for match in RENOVATE_WORKFLOW_VERSION.finditer(workflow)
+        if match["datasource"] == "github-releases" and match["depName"] == "jdx/mise"
+    ]
+    assert tracked == pins, (
+        "Every CI mise installation pin must have a Renovate annotation"
+    )
+
+
+@pytest.fixture
+def mise_ci():
+    root = Path(__file__).resolve().parents[1]
+    minimum = tomllib.loads((root / ".mise.toml").read_text())["min_version"]
+    return minimum, (root / ".github/workflows/ci.yml").read_text()
+
+
+def test_ci_mise_versions_tracked_by_renovate(mise_ci):
+    _check_mise_ci_versions(*mise_ci)
+
+
+def test_ci_checks_pull_requests_and_main_pushes(mise_ci):
+    _, workflow = mise_ci
+    triggers = yaml.load(workflow, Loader=yaml.BaseLoader)["on"]
+    assert triggers["pull_request"] == ""
+    assert triggers["push"] == {"branches": ["main"]}
+
+
+@pytest.mark.parametrize(
+    ("label", "valid"),
+    [
+        ("ubuntu-26.04", True),
+        ("ubuntu-24.04", True),
+        ("ubuntu-26.04-typo", False),
+        ("ubuntu-99.04", False),
+    ],
+)
+def test_actionlint_runner_labels(label, valid):
+    root = Path(__file__).resolve().parents[1]
+    config = root / ".github/actionlint.yaml"
+    assert yaml.safe_load(config.read_text()) == {
+        "self-hosted-runner": {"labels": ["ubuntu-26.04"]}
+    }
+    result = subprocess.run(
+        ["actionlint", "-config-file", str(config), "-"],
+        input=(
+            "on: push\njobs:\n  check:\n"
+            f"    runs-on: {label}\n"
+            "    steps:\n      - run: echo ok\n"
+        ),
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=10,
+    )
+    output = result.stdout + result.stderr
+    if valid:
+        assert result.returncode == 0, output
+    else:
+        assert result.returncode == 1, output
+        assert f'label "{label}" is unknown' in output
+        assert "[runner-label]" in output
+
+
+def test_coherent_mise_version_bump(mise_ci):
+    minimum, workflow = mise_ci
+    bumped = "2099.1.0"
+    _check_mise_ci_versions(bumped, workflow.replace(minimum, bumped))
+
+
+@pytest.mark.parametrize("field", ["mise-version", "version"])
+@pytest.mark.parametrize("failure", ["mismatch", "unannotated"])
+def test_ci_mise_version_drift_rejected(mise_ci, field, failure):
+    minimum, workflow = mise_ci
+    lines = workflow.splitlines(keepends=True)
+    index = next(
+        index
+        for index, line in enumerate(lines)
+        if line.strip().startswith(f"{field}:")
+    )
+    if failure == "mismatch":
+        lines[index] = lines[index].replace(minimum, "0.0.0")
+        message = "must equal .mise.toml min_version"
+    else:
+        lines[index - 1] = ""
+        message = "must have a Renovate annotation"
+    with pytest.raises(AssertionError, match=re.escape(message)):
+        _check_mise_ci_versions(minimum, "".join(lines))
 
 
 @pytest.fixture
