@@ -1,0 +1,9 @@
+{
+  "language": "nl",
+  "requests": 1,
+  "surface": "native device page",
+  "walking_minutes": 7,
+  "configured_sources": 3,
+  "ready_after_disable": 2,
+  "combined_feed_after_disable": "unavailable"
+}

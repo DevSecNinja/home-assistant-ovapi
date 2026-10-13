@@ -1,15 +1,22 @@
 """Recorder-safe operational status; departure boards are deliberately not state."""
 
+from collections.abc import Callable
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+)
+from homeassistant.const import EntityCategory, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .combined import is_combined, source_ids, source_label
-from .const import COMBINED_CONTEXT, CONF_STOP, DOMAIN
+from .const import COMBINED_CONTEXT, CONF_STOP, CONF_WALK, DOMAIN
 from .coordinator import OvapiCoordinator
 
 if TYPE_CHECKING:
@@ -18,12 +25,97 @@ if TYPE_CHECKING:
 PARALLEL_UPDATES = 0
 
 
+@dataclass(frozen=True, kw_only=True)
+class OvapiInsightDescription(SensorEntityDescription):
+    value_fn: Callable[[OvapiConfigEntry], int]
+
+
+WALKING_DURATION = OvapiInsightDescription(
+    key="walking_duration",
+    translation_key="walking_duration",
+    device_class=SensorDeviceClass.DURATION,
+    native_unit_of_measurement=UnitOfTime.MINUTES,
+    value_fn=lambda entry: entry.options.get(CONF_WALK, 0),
+)
+COMBINED_INSIGHTS = (
+    OvapiInsightDescription(
+        key="configured_sources",
+        translation_key="configured_sources",
+        value_fn=lambda entry: len(source_ids(entry)),
+    ),
+    OvapiInsightDescription(
+        key="ready_sources",
+        translation_key="ready_sources",
+        value_fn=lambda entry: sum(
+            status == "ready"
+            for status in entry.runtime_data.source_statuses(entry).values()
+        ),
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: OvapiConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    async_add_entities([OvapiStatusSensor(entry)])
+    descriptions = (
+        (WALKING_DURATION, *COMBINED_INSIGHTS)
+        if is_combined(entry)
+        else (WALKING_DURATION,)
+    )
+    async_add_entities(
+        [
+            OvapiStatusSensor(entry),
+            *(OvapiInsightSensor(entry, description) for description in descriptions),
+        ]
+    )
+
+
+def device_info(entry: OvapiConfigEntry) -> DeviceInfo:
+    return DeviceInfo(
+        identifiers={(DOMAIN, entry.entry_id)},
+        name=entry.data["name"],
+        entry_type=DeviceEntryType.SERVICE,
+        manufacturer="OVAPI",
+        model=(
+            "Manual combination"
+            if is_combined(entry)
+            else f"Timing point {entry.data[CONF_STOP]}"
+        ),
+        configuration_url=(
+            "https://github.com/DevSecNinja/home-assistant-ovapi#status-and-data"
+        ),
+    )
+
+
+class OvapiInsightSensor(CoordinatorEntity[OvapiCoordinator], SensorEntity):
+    """Read-only local values, without polling ownership or board capabilities."""
+
+    entity_description: OvapiInsightDescription
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(
+        self, entry: OvapiConfigEntry, description: OvapiInsightDescription
+    ) -> None:
+        super().__init__(entry.runtime_data, COMBINED_CONTEXT)
+        self._entry = entry
+        self.entity_description = description
+        self._attr_unique_id = f"{entry.entry_id}_{description.key}"
+        self._attr_device_info = device_info(entry)
+
+    @property
+    def available(self) -> bool:
+        """Configuration and source health remain useful during feed outages."""
+        return True
+
+    @property
+    def native_value(self) -> int:
+        return self.entity_description.value_fn(self._entry)
+
+    async def async_update(self) -> None:
+        self._handle_coordinator_update()
 
 
 class OvapiStatusSensor(CoordinatorEntity[OvapiCoordinator], SensorEntity):
@@ -38,20 +130,7 @@ class OvapiStatusSensor(CoordinatorEntity[OvapiCoordinator], SensorEntity):
         )
         self._entry = entry
         self._attr_unique_id = entry.entry_id
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name=entry.data["name"],
-            entry_type=DeviceEntryType.SERVICE,
-            manufacturer="OVAPI",
-            model=(
-                "Manual combination"
-                if is_combined(entry)
-                else f"Timing point {entry.data[CONF_STOP]}"
-            ),
-            configuration_url=(
-                "https://github.com/DevSecNinja/home-assistant-ovapi#status-and-data"
-            ),
-        )
+        self._attr_device_info = device_info(entry)
 
     @property
     def capability_attributes(self) -> dict[str, Any]:

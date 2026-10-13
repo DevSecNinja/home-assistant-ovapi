@@ -228,6 +228,15 @@
   },
   "entity": {
     "sensor": {
+      "walking_duration": {
+        "name": "Configured walking time"
+      },
+      "configured_sources": {
+        "name": "Configured source favourites"
+      },
+      "ready_sources": {
+        "name": "Source favourites with ready feed"
+      },
       "board": {
         "name": "Departure feed status",
         "state": {

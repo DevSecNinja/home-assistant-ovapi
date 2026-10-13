@@ -144,6 +144,15 @@ optional browser test skips. Use the minimum environment/group flags above to
 repeat against HA 2026.10.0. The current frontend's default overview uses its own
 strategy, so this harness creates a separate named storage dashboard.
 
+For local diagnostic device-page proof and the peer's grouped walking-aware
+departures card, use the same bundle/environment flags with
+`pytest tests/ui/test_native_insights.py -m frontend --no-cov --timeout=120`.
+This checks native EN/NL phone/desktop device pages, three source favourites,
+configured versus ready counts after source disable, strict board-only selection
+and diagnostic WebSocket rejection. The dashboard override never changes the
+configured walking diagnostic. Artifact JSON records the exact bundle hash,
+public entity values and unchanged synthetic HTTP count.
+
 Do not point development tests at a live HA installation or public OVAPI.
 The companion repository owns the combined browser/HA scenario. To reproduce its
 backend side:
@@ -187,11 +196,12 @@ resolved official templates, ran `setup-plan.sh`, `setup-tasks.sh` and
 phases without spawning additional agents. `.specify/feature.json` selects the
 feature independently of the app-managed Git branch and is upstream-defined local
 state (ignored by Git). The repository-local mise environment sets
-`SPECIFY_FEATURE_DIRECTORY=specs/004-manual-combined-favourites` so fresh checkouts reproduce
+`SPECIFY_FEATURE_DIRECTORY=specs/005-local-favourite-insights` so fresh checkouts reproduce
 feature resolution. Constitution, specification,
 plan, research, data model, contract, tasks and verification live in
 `specs/001-ovapi-integration/`, `specs/002-stop-name-picker/`,
-`specs/003-station-favourites/`, `specs/004-manual-combined-favourites/` and
+`specs/003-station-favourites/`, `specs/004-manual-combined-favourites/`,
+`specs/005-local-favourite-insights/` and
 `.specify/memory/constitution.md`.
 
 Run `mise run specify -- --help` for the pinned CLI. Never replace these artifacts
