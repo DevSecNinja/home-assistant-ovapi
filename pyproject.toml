@@ -13,7 +13,7 @@ dev = [
 ]
 # This fixture's own HA pin must equal hacs.json's declared minimum.
 # Update deliberately with the supported floor, not with routine dev updates.
-minimum = ["pytest-homeassistant-custom-component==0.13.371"]
+minimum = ["pytest-homeassistant-custom-component==0.13.372"]
 e2e = ["home-assistant-frontend==20260930.3", "playwright==1.56.0"]
 
 [tool.uv]
