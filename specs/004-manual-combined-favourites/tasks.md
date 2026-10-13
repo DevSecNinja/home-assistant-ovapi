@@ -49,7 +49,7 @@ reload and persisted restart configuration preserve identity and age.
 
 - [x] T010 Document manual setup, limitations and retention in README.md and specs/004-manual-combined-favourites/verification.md.
 - [x] T011 Run both HA suites, strict coverage, type/lint/package/native browser gates and converge specs/004-manual-combined-favourites/tasks.md.
-- [ ] T012 Commit/push focused branch, create template-based PR and verify hosted CI using .github/PULL_REQUEST_TEMPLATE.md.
+- [x] T012 Commit/push focused branch, create template-based PR and verify hosted CI using .github/PULL_REQUEST_TEMPLATE.md.
 
 ## Dependencies & Execution Order
 
@@ -73,5 +73,5 @@ extension hooks configured. All twelve tasks use checklist IDs and explicit path
 
 ## Phase 7: Convergence
 
-- [ ] T013 Finish review delivery and hosted CI verification per T012 and Constitution V (partial), using .github/PULL_REQUEST_TEMPLATE.md.
+- [x] T013 Finish review delivery and hosted CI verification per T012 and Constitution V (partial), using .github/PULL_REQUEST_TEMPLATE.md.
 - [x] T014 Persist measured native-screen and command evidence in specs/004-manual-combined-favourites/verification.md per T010 and SC-004 (missing).

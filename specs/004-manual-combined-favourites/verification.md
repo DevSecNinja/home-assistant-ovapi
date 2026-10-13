@@ -95,8 +95,19 @@ The native-form mechanical detector returned no findings.
 Checked nine functional requirements, four success criteria, nine acceptance
 scenarios, the six bounded design decisions and all five constitution principles.
 No feature-code gaps remain. Convergence identified only persistence of this
-verification record and pending PR/hosted-CI delivery; these remain explicit tasks.
+verification record and PR/hosted-CI delivery; both are now completed.
 No extension hooks are configured.
+
+## Hosted delivery
+
+Implementation commit `c539828d828ace3cd28b0062d60aaded855b3e01` was pushed
+and [PR #7](https://github.com/DevSecNinja/home-assistant-ovapi/pull/7) opened
+against main, using the repository PR template.
+[CI run 38369119963](https://github.com/DevSecNinja/home-assistant-ovapi/actions/runs/38369119963)
+completed successfully: both backend runtimes, hassfest, HACS, dprint, yamlfmt,
+actionlint, zizmor and gitleaks. Unused shared jobs remain skipped by the
+unchanged shared-workflow configuration. Native Copilot review was requested
+by the coordinating parent; no duplicate review was requested here.
 
 This deliberately does not solve automatic station membership or close issue 5.
 It combines 2-12 existing leaf favourites and cannot expand their filters.
