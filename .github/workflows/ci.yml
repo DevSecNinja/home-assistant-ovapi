@@ -19,7 +19,7 @@ jobs:
     uses: DevSecNinja/.github/.github/workflows/lint.yml@24acc67adf1be33089e73b2fdbdb4be8c12d145b # v3.2.0
     with:
       # renovate: datasource=github-releases depName=jdx/mise
-      mise-version: "2026.9.17"
+      mise-version: "2026.9.18"
       lint-fail-on-error: true
       lint-go: false
       lint-yamllint: false
@@ -45,7 +45,7 @@ jobs:
       - uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
         with:
           # renovate: datasource=github-releases depName=jdx/mise
-          version: "2026.9.17"
+          version: "2026.9.18"
       - run: mise run install
         if: matrix.runtime == 'locked'
       - run: mise run test
