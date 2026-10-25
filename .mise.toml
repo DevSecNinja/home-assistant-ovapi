@@ -1,5 +1,5 @@
 # renovate: datasource=github-releases depName=jdx/mise
-min_version = "2026.10.7"
+min_version = "2026.10.8"
 
 [env]
 SPECIFY_FEATURE_DIRECTORY = "specs/005-local-favourite-insights"
