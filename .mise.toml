@@ -6,7 +6,7 @@ SPECIFY_FEATURE_DIRECTORY = "specs/005-local-favourite-insights"
 
 [tools]
 python = "3.14.8"
-uv = "0.13.0"
+uv = "0.13.1"
 dprint = "0.63.0"
 yamlfmt = "0.21.0"
 actionlint = "1.7.12"
