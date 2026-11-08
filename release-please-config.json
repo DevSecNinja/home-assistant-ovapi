@@ -19,16 +19,6 @@
           "path": "custom_components/ovapi/manifest.json",
           "jsonpath": "$.version"
         },
-        {
-          "type": "toml",
-          "path": "pyproject.toml",
-          "jsonpath": "$.project.version"
-        },
-        {
-          "type": "toml",
-          "path": "uv.lock",
-          "jsonpath": "$.package[?(@.name=='home-assistant-ovapi')].version"
-        },
         "custom_components/ovapi/const.py"
       ]
     }

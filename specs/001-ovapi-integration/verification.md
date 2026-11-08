@@ -126,8 +126,8 @@ evidence. No no-deps install, forced HA override, automatic minimum bump, upper
 HA bound or manual-install runtime restriction is added.
 
 Integration release identity is a different domain: `manifest.json` owns the
-release; a static package check requires matching literal `const.VERSION` and
-`pyproject.toml` version. Canonical three-part PEP 440 releases, including release
+release; a static package check requires matching literal `const.VERSION`
+(`pyproject.toml` carries no version). Canonical three-part PEP 440 releases, including release
 candidates, are accepted. The actual intercepted HTTP request test derives the
 expected `User-Agent` from the manifest and checks both the constant and outgoing
 header. Coherent bumps pass, while missing/mismatched/nonliteral versions fail.
