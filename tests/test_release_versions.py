@@ -13,7 +13,6 @@ def release_project(tmp_path):
     integration.mkdir(parents=True)
     (integration / "manifest.json").write_text('{"version": "1.2.3"}')
     (integration / "const.py").write_text('VERSION = "1.2.3"\n')
-    (tmp_path / "pyproject.toml").write_text('[project]\nversion = "1.2.3"\n')
     return tmp_path
 
 
@@ -26,7 +25,6 @@ def test_coherent_release_bump_passes(release_project, release):
     (root / "custom_components/ovapi/const.py").write_text(
         f"VERSION = {release!r}\nAPI_URL = 'http://v0.ovapi.nl/tpc'\n"
     )
-    (root / "pyproject.toml").write_text(f"[project]\nversion = {release!r}\n")
     assert check_release_versions(root) == release
 
 
@@ -50,12 +48,6 @@ def test_invalid_manifest_release(release_project, release):
         json.dumps({"version": release})
     )
     with pytest.raises(ValueError, match="canonical three-part PEP 440"):
-        check_release_versions(release_project)
-
-
-def test_project_version_mismatch(release_project):
-    (release_project / "pyproject.toml").write_text('[project]\nversion = "1.2.4"\n')
-    with pytest.raises(ValueError, match="project.version must match manifest"):
         check_release_versions(release_project)
 
 

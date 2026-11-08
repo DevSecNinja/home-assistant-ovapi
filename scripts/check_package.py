@@ -2,7 +2,6 @@
 
 import ast
 import json
-import tomllib
 import zipfile
 from pathlib import Path
 
@@ -33,11 +32,6 @@ def check_release_versions(root: Path = Path(".")) -> str:
             "manifest.json version must be canonical three-part PEP 440 "
             f"(for example 1.2.3 or 1.2.3rc1), got {release!r}"
         )
-    project = tomllib.loads((root / "pyproject.toml").read_text())
-    if project["project"].get("version") != release:
-        raise ValueError(
-            "pyproject.toml project.version must match manifest.json version"
-        )
     constants = ast.parse((root / ROOT / "const.py").read_text())
     versions = [
         node.value
@@ -56,10 +50,7 @@ def check_release_versions(root: Path = Path(".")) -> str:
         raise ValueError(
             "const.py VERSION must be a literal matching manifest.json version"
         )
-    print(
-        "Release identity: manifest.json, const.VERSION and project.version "
-        f"= {release}"
-    )
+    print(f"Release identity: manifest.json and const.VERSION = {release}")
     return release
 
 

@@ -71,11 +71,11 @@ There is no arbitrary maximum HA version or runtime rejection of manual installs
 ### Integration release identity
 
 `custom_components/ovapi/manifest.json`'s `version` is the **integration release
-authority**, independent of the HA minimum. For a release bump, update that field,
-`const.py`'s literal `VERSION`, and `pyproject.toml`'s `project.version` together,
-then refresh `uv.lock` and run `mise run check`. The package guard parses the
-constant statically (no HA imports/runtime file I/O) and fails with the mismatched
-file named. Versions must use canonical three-part PEP 440 syntax, such as `0.2.0`
+authority**, independent of the HA minimum. For a release bump, update that field and `const.py`'s literal `VERSION` together (release-please does
+this), then run `mise run check`. `pyproject.toml` keeps a constant placeholder
+`project.version = "0.0.0"` (uv requires a version; do not remove it or bump it per
+release), so `uv.lock` carries no per-release version. The package guard parses the constant statically (no HA imports/runtime
+file I/O) and fails with the mismatched file named. Versions must use canonical three-part PEP 440 syntax, such as `0.2.0`
 or `0.2.0rc1`, without epoch or local suffix.
 
 The real async-client request test derives its expected release from the manifest

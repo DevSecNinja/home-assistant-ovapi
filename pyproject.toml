@@ -1,6 +1,8 @@
 [project]
 name = "home-assistant-ovapi"
-version = "0.1.0"
+# Placeholder required by uv; the integration release version lives in
+# custom_components/ovapi/manifest.json and is intentionally not tracked here.
+version = "0.0.0"
 description = "Retention-safe, shared-budget OVAPI integration for Home Assistant"
 requires-python = "==3.14.8"
 dependencies = []
