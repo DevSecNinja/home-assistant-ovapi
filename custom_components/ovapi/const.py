@@ -1,7 +1,7 @@
 """Fixed, deliberately conservative integration limits."""
 
 DOMAIN = "ovapi"
-VERSION = "0.1.0"
+VERSION = "0.1.0"  # x-release-please-version
 API_URL = "http://v0.ovapi.nl/tpc"
 USER_AGENT = (
     f"home-assistant-ovapi/{VERSION} "
