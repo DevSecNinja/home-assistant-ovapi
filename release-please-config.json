@@ -12,6 +12,7 @@
     ".": {
       "release-type": "simple",
       "package-name": "home-assistant-ovapi",
+      "release-as": "0.1.0",
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
         {
