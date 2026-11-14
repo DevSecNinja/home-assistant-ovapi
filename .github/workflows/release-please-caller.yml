@@ -32,7 +32,7 @@ concurrency:
 jobs:
   release-please:
     # Self-reference pinned to the released fail-closed workflow.
-    uses: DevSecNinja/.github/.github/workflows/release-please.yml@c61e8107b080f72e25bfc41d3eef947dbfa66446 # v3.0.0
+    uses: DevSecNinja/.github/.github/workflows/release-please.yml@24acc67adf1be33089e73b2fdbdb4be8c12d145b # v3.2.0
     permissions:
       contents: write
       pull-requests: write
