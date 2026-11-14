@@ -4,19 +4,19 @@ name = "home-assistant-ovapi"
 # custom_components/ovapi/manifest.json and is intentionally not tracked here.
 version = "0.0.0"
 description = "Retention-safe, shared-budget OVAPI integration for Home Assistant"
-requires-python = "==3.14.8"
+requires-python = "==3.14.10"
 dependencies = []
 
 [dependency-groups]
 dev = [
-  "pytest-homeassistant-custom-component==0.13.373",
-  "mypy==2.4.0",
-  "ruff==0.17.1",
+  "pytest-homeassistant-custom-component==0.13.375",
+  "mypy==2.4.1",
+  "ruff==0.17.3",
 ]
 # This fixture's own HA pin must equal hacs.json's declared minimum.
 # Update deliberately with the supported floor, not with routine dev updates.
 minimum = ["pytest-homeassistant-custom-component==0.13.371"]
-e2e = ["home-assistant-frontend==20260930.4", "playwright==1.64.0"]
+e2e = ["home-assistant-frontend==20260930.5", "playwright==1.64.1"]
 
 [tool.uv]
 conflicts = [[{ group = "dev" }, { group = "minimum" }]]
