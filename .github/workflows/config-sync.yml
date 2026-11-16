@@ -1,0 +1,33 @@
+---
+# Config-sync caller that repo-steward adds to repos without one (rule
+# baseline/required-file#config-sync, policy/baseline.toml [[files]]). It
+# matches DevSecNinja/.github workflow-templates/config-sync.yml. Renovate
+# keeps the pin current (its github-actions manager reads workflow-templates/).
+name: Config Sync
+
+on:
+  schedule:
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# A sync run opens or updates a PR: let it finish and queue the next one.
+concurrency:
+  group: config-sync-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    uses: DevSecNinja/.github/.github/workflows/config-sync.yml@e28a49a14d4530962b165e0d35a8a331b2b42f23 # v3.7.1
+    permissions:
+      contents: write
+      pull-requests: write
+    # The PR is opened as the DevSecNinja Automation GitHub App, so it runs CI
+    # and needs no "Allow GitHub Actions to create and approve pull requests"
+    # setting. The App ID is read from the AUTOMATION_APP_ID variable; pass
+    # the key. See https://github.com/DevSecNinja/.github/blob/main/docs/automation-app.md
+    secrets:
+      AUTOMATION_APP_PRIVATE_KEY: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
