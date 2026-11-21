@@ -1,5 +1,5 @@
 # renovate: datasource=github-releases depName=jdx/mise
-min_version = "2026.11.1"
+min_version = "2026.11.3"
 
 [env]
 SPECIFY_FEATURE_DIRECTORY = "specs/005-local-favourite-insights"
@@ -44,7 +44,7 @@ run = "uv run --locked --group e2e pytest tests/ui/test_native_picker.py -m fron
 run = "uv run --locked python -m scripts.check_package"
 
 [tasks.specify]
-run = "uvx --from specify-cli==1.3.0 specify"
+run = "uvx --from specify-cli==1.3.2 specify"
 
 [tasks.check]
 depends = ["test", "test-minimum", "lint", "typecheck", "package"]
