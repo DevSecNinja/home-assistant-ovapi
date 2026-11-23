@@ -50,8 +50,17 @@ jobs:
         if: matrix.runtime == 'locked'
       - run: mise run test
         if: matrix.runtime == 'locked'
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results.xml
       - run: mise run test-minimum
         if: matrix.runtime == 'minimum'
+        env:
+          PYTEST_ADDOPTS: --junitxml=test-results.xml
+      - uses: DevSecNinja/.github/actions/test-report@5452dbd33d61b4fc58b1780f57e0b60ff131be75 # v4.10.0
+        if: always()
+        with:
+          paths: test-results.xml
+          title: pytest (${{ matrix.runtime }})
       - run: mise run typecheck
         if: matrix.runtime == 'locked'
       - run: mise exec -- uv run --locked ruff check .
